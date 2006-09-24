@@ -87,6 +87,7 @@ void clean_attr(key_attr *attr);
 void clean_value(key_value *value);
 
 int sqlfs_del_tree(sqlfs_t *sqlfs, const char *key);
+int sqlfs_del_tree_with_exclusion(sqlfs_t *sqlfs, const char *key, const char *exclusion_pattern);
 
 int sqlfs_get_value(sqlfs_t *sqlfs, const char *key, key_value *value, 
     size_t begin, size_t end);
@@ -101,6 +102,7 @@ int sqlfs_set_attr(sqlfs_t *sqlfs, const char *key, const key_attr *attr);
 
 
 int sqlfs_set_type(sqlfs_t *sqlfs, const char *key, const char *type);
+int sqlfs_list_keys(sqlfs_t *, const char *pattern, void *buf, fuse_fill_dir_t filler);
   
 int sqlfs_begin_transaction(sqlfs_t *sqlfs);
 int sqlfs_complete_transaction(sqlfs_t *sqlfs, int i);

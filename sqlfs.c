@@ -493,6 +493,95 @@ static int remove_key_subtree(sqlfs_t *sqlfs, const char *key)
 }
 
 
+static int remove_key_subtree_with_exclusion(sqlfs_t *sqlfs, const char *key, const char *exclusion_pattern)
+{
+    int r;
+    const char *tail;
+    sqlite3_stmt *stmt;
+    char pattern[PATH_MAX];
+    char n_pattern[PATH_MAX];
+    static const char *cmd1 = "delete from meta_data where (key glob :pattern) and not (key glob :n_pattern) ;";
+    static const char *cmd2 = "delete from value_data where (key glob :pattern) and not (key glob :n_pattern) ;" ;
+    static const char *cmd3 = "select key from meta_data where (key glob :n_pattern) ;" ;
+    char *lpath;
+
+    lpath = strdup(key);
+    remove_tail_slash(lpath);
+    snprintf(pattern, sizeof(pattern), "%s/*", lpath);
+   
+    snprintf(n_pattern, sizeof(n_pattern), "%s/%s", lpath, exclusion_pattern);
+    free(lpath);
+    BEGIN
+    r = sqlite3_prepare(sqlfs->db, cmd1, -1, &stmt, &tail);
+    if (r != SQLITE_OK)
+    {
+        show_msg(stderr, "%s\n", sqlite3_errmsg(sqlfs->db));
+        COMPLETE(1)
+        return r;
+    }
+    sqlite3_bind_text(stmt, 1, pattern, -1, SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 2, n_pattern, -1, SQLITE_STATIC);
+    r = sql_step(stmt);
+    if (r != SQLITE_DONE)
+    {
+        show_msg(stderr, "%s\n", sqlite3_errmsg(sqlfs->db));
+    }
+    else
+    {
+        r = SQLITE_OK;
+    }
+    sqlite3_finalize(stmt);
+    if (r == SQLITE_OK)
+    {
+        r = sqlite3_prepare(sqlfs->db, cmd2, -1, &stmt, &tail);
+        if (r != SQLITE_OK)
+        {
+            show_msg(stderr, "%s\n", sqlite3_errmsg(sqlfs->db));
+            COMPLETE(1)
+            return r;
+        }
+        sqlite3_bind_text(stmt, 1, pattern, -1, SQLITE_STATIC);
+        r = sql_step(stmt);
+        if (r != SQLITE_DONE)
+        {
+            show_msg(stderr, "%s\n", sqlite3_errmsg(sqlfs->db));
+        }
+        else
+        {
+            r = SQLITE_OK;
+        }
+        sqlite3_finalize(stmt);
+    }
+    if (r == SQLITE_OK)
+    {
+        r = sqlite3_prepare(sqlfs->db, cmd3, -1, &stmt, &tail);
+        if (r != SQLITE_OK)
+        {
+            show_msg(stderr, "%s\n", sqlite3_errmsg(sqlfs->db));
+            COMPLETE(1)
+            return r;
+        }
+        sqlite3_bind_text(stmt, 1, n_pattern, -1, SQLITE_STATIC);
+        r = sql_step(stmt);
+        if (r != SQLITE_ROW)
+        {
+            if (r != SQLITE_DONE)
+                show_msg(stderr, "%s\n", sqlite3_errmsg(sqlfs->db));
+            else
+                r = SQLITE_NOTFOUND;
+        }
+        
+        sqlite3_finalize(stmt);
+       
+        if (r == SQLITE_NOTFOUND)    
+            r = remove_key(sqlfs, key);
+        else
+            r = SQLITE_OK;
+    }
+    COMPLETE(1)
+    return r;
+}
+
 
 static int rename_key(sqlfs_t *sqlfs, const char *old, const char *new)
 {
@@ -1687,7 +1776,9 @@ int sqlfs_proc_unlink(sqlfs_t *sqlfs, const char *path)
     int r, result = 0;
     BEGIN
     CHECK_PARENT_WRITE(path)
-    
+    if (key_exists(get_sqlfs(sqlfs), path, 0) == 0)
+        result = -ENOENT;
+
     r = remove_key(get_sqlfs(sqlfs), path);
     if (r != SQLITE_OK)
         result = -EIO;
@@ -2320,6 +2411,24 @@ int sqlfs_del_tree(sqlfs_t *sqlfs, const char *key)
 }
 
 
+int sqlfs_del_tree_with_exclusion(sqlfs_t *sqlfs, const char *key, const char *exclusion_pattern)
+{
+    int result = 0;
+    BEGIN
+    CHECK_PARENT_WRITE(key)
+    CHECK_DIR_WRITE(key)
+    
+    if (key_exists(get_sqlfs(sqlfs), key, 0) == 0)
+        result = -ENOENT;
+    if (SQLITE_OK == remove_key_subtree_with_exclusion(get_sqlfs(sqlfs), key, exclusion_pattern))
+        result = 0;
+    else
+        result = -EIO;
+    COMPLETE(1)
+    return result;
+}
+
+
 
 int sqlfs_get_value(sqlfs_t *sqlfs, const char *key, key_value *value,
                     size_t begin, size_t end)
@@ -2335,6 +2444,8 @@ int sqlfs_get_value(sqlfs_t *sqlfs, const char *key, key_value *value,
         r = get_value(get_sqlfs(sqlfs), key, value, begin, end);
     
     COMPLETE(1)
+    if (r == SQLITE_NOTFOUND)
+        return -1;
     return SQLITE_OK == r;
 }
 
@@ -2438,6 +2549,62 @@ int sqlfs_set_type(sqlfs_t *sqlfs, const char *key, const char *type)
     COMPLETE(1)
     return (r == SQLITE_OK);
 }
+
+
+int sqlfs_list_keys(sqlfs_t *sqlfs, const char *pattern, void *buf, fuse_fill_dir_t filler)
+{
+    int r, result = 0;
+    const char *tail;
+    const char *t;
+    static const char *cmd = "select key, mode from meta_data where key glob :pattern; ";
+    char tmp[PATH_MAX];
+    char *lpath;
+    sqlite3_stmt *stmt;
+    BEGIN
+    
+    lpath = strdup(pattern);
+    remove_tail_slash(lpath);
+   
+    snprintf(tmp, sizeof(tmp), "%s", pattern);
+
+    r = sqlite3_prepare(get_sqlfs(sqlfs)->db, cmd, -1, &stmt,  &tail);
+    if (r != SQLITE_OK)
+    {
+        show_msg(stderr, "%s\n", sqlite3_errmsg(get_sqlfs(sqlfs)->db));
+
+        result = -EACCES;
+    }
+    if (result == 0)
+    {
+        sqlite3_bind_text(stmt, 1, tmp, -1, SQLITE_STATIC);
+
+        while (1)
+        {
+            r = sql_step(stmt);
+            if (r == SQLITE_ROW)
+            {
+                t = sqlite3_column_text(stmt, 0);
+                if (filler(buf, t, NULL, 0))
+                    break;
+            }
+            else if (r == SQLITE_DONE)
+            {
+                break;
+            }
+            else
+            {
+                show_msg(stderr, "%s\n", sqlite3_errmsg(get_sqlfs(sqlfs)->db));
+                result = -EACCES;
+                break;
+            }
+        }
+        sqlite3_finalize(stmt);
+    }
+    COMPLETE(1)
+    free(lpath);
+    return result;
+}
+
 
 static int create_db_table(sqlfs_t *sqlfs)
 {  /* ensure tables are created if not existing already

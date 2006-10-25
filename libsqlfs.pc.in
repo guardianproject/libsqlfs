@@ -1,0 +1,13 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: libsqlfs
+Description: file system implementation on top of SQLite
+Requires:
+Version: @VERSION@
+Libs: -L${libdir} -lsqlfs -lsqlite3
+Cflags: -I${includedir}
+
+

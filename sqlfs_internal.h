@@ -47,7 +47,10 @@ typedef struct
 {
     sqlite3 *db;
     int transaction_level;
+    int in_transaction;
     mode_t default_mode;
+    
+    sqlite3_stmt *stmts[200];
 #ifndef FUSE    
     uid_t uid;
     gid_t gid;
@@ -99,6 +102,8 @@ int sqlfs_get_attr(sqlfs_t *sqlfs, const char *key, key_attr *attr);
 
 int sqlfs_set_attr(sqlfs_t *sqlfs, const char *key, const key_attr *attr);
 
+int sqlfs_is_dir(sqlfs_t *sqlfs, const char *key);
+
 
 
 int sqlfs_set_type(sqlfs_t *sqlfs, const char *key, const char *type);
@@ -106,6 +111,7 @@ int sqlfs_list_keys(sqlfs_t *, const char *pattern, void *buf, fuse_fill_dir_t f
   
 int sqlfs_begin_transaction(sqlfs_t *sqlfs);
 int sqlfs_complete_transaction(sqlfs_t *sqlfs, int i);
+int sqlfs_break_transaction(sqlfs_t *sqlfs);
 
 int sqlfs_proc_getattr(sqlfs_t *, const char *path, struct stat *stbuf);
 int sqlfs_proc_access(sqlfs_t *, const char *path, int mask);

@@ -19,7 +19,7 @@ AC_SUBST(DEPS_LIBS)
 
 AC_SYS_LARGEFILE
 
-AC_CONFIG_FILES(Makefile tests/Makefile)
+AC_CONFIG_FILES(Makefile tests/Makefile libsqlfs.pc)
 
 AC_OUTPUT
 

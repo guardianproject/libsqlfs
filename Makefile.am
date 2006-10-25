@@ -10,5 +10,9 @@ lib_LTLIBRARIES = libsqlfs.la
 libsqlfs_la_SOURCES = sqlfs.c
 libsqlfs_la_LIBADD = $(DEPS_LIBS)
 
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = libsqlfs.pc
+EXTRA_DIST = libsqlfs.pc.in
+
 
 

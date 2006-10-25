@@ -1,0 +1,8 @@
+base-0
+    initial import, sync with CVS
+patch-1
+    adding new APIs to show files according to a pattern and to delete a subtree with an exclusion pattern, and small bug fixes
+patch-2
+    bug fix for unlink on key directories; SQL statements now cached in the prepared form, FUSE fixes; APIs return busy when database is locked (should not be triggered under FUSE
+patch-3
+    now version is 1.1

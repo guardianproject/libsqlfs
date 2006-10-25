@@ -1928,7 +1928,7 @@ fi
 
 # Define the identity of the package.
  PACKAGE=libsqlfs
- VERSION=1.0
+ VERSION=1.1
 
 
 cat >>confdefs.h <<_ACEOF

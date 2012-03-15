@@ -1,20 +1,20 @@
 /******************************************************************************
-Copyright 2006 Palmsource, Inc (an ACCESS company). 
- 
+Copyright 2006 Palmsource, Inc (an ACCESS company).
+
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
 License as published by the Free Software Foundation; either
 version 2.1 of the License, or (at your option) any later version.
- 
+
 This library is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 Lesser General Public License for more details.
- 
+
 You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
- 
+
 *****************************************************************************/
 /*!
  * @file sqlfs.c
@@ -25,30 +25,30 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *****************************************************************************/
 
 /* the file system is stored in a SQLite table, with the following columns
- 
- 
+
+
 full key path      type     inode      uid      gid        mode   acl      attributes         atime  mtime ctime size  block_size
 (text)            (text)    (integer) (integer) (integer)   (integer)   (text)    (text)        (integer) ...
- 
+
 the key path must start with "/" and is case sensitive
- 
+
 the type can be one of these:  "int", "double",  "string", "dir", "sym link" and "blob"
- 
- 
-for Blobs we will divide them into 8k pieces, each occupying an BLOB object in database indexed by a block number 
+
+
+for Blobs we will divide them into 8k pieces, each occupying an BLOB object in database indexed by a block number
 which starts from 0
- 
+
 created by
- 
+
  CREATE TABLE meta_data(key text, type text, inode integer, uid integer, gid integer, mode integer,  acl text, attribute text,
     atime integer, mtime integer, ctime integer, size integer, block_size integer, primary key (key), unique(key)) ;
-    
- CREATE TABLE value_data (key text, block_no integer, data_block blob, unique(key, block_no));   
- 
+
+ CREATE TABLE value_data (key text, block_no integer, data_block blob, unique(key, block_no));
+
  create index meta_index on meta_data (key);
  create index value_index on value_data (key, block_no);
- 
- 
+
+
 */
 
 /* currently permission control due to the current directory not implemented */

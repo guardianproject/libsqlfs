@@ -1,16 +1,16 @@
 /******************************************************************************
-Copyright 2006 Palmsource, Inc (an ACCESS company). 
+Copyright 2006 Palmsource, Inc (an ACCESS company).
 
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
 License as published by the Free Software Foundation; either
 version 2.1 of the License, or (at your option) any later version.
- 
+
 This library is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 Lesser General Public License for more details.
- 
+
 You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
@@ -33,7 +33,7 @@ int main(int argc, char *argv[])
     memset(data2, '2', 32000);
     sqlfs_init(argv[1]);
     sqlfs_open(argv[1], &sqlfs);
-    
+
     sqlfs_proc_mkdir(sqlfs, "/test", 0666);
     sqlfs_proc_mkdir(sqlfs, "/test/1", 0666);
     sqlfs_proc_mkdir(sqlfs, "/test/2", 0666);
@@ -41,12 +41,12 @@ int main(int argc, char *argv[])
     fi.flags |= ~0;
     sqlfs_proc_write(sqlfs, "/test/2/file", data, strlen(data), 0, &fi);
     sqlfs_proc_rmdir(sqlfs, "/test");
-    
-    
+
+
     i = sqlfs_proc_read(sqlfs, "/test/2/file", buf, sizeof(buf), 0, &fi);
     buf[i] = 0;
     assert(!strcmp(buf, data));
-    
+
     sqlfs_proc_write(sqlfs, "/app/data/file", data, strlen(data), 0, &fi);
     sqlfs_proc_write(sqlfs, "/big/a/b/c/file", data2, 32000, 0, &fi);
 

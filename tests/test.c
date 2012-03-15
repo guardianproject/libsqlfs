@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
     sqlfs_t *sqlfs = 0;
     memset(data2, '2', 32000);
     sqlfs_init(argv[1]);
-    sqlfs_open(argv[1], &sqlfs);
+    sqlfs_open(argv[1], argv[2], strlen(argv[2]), &sqlfs);
     
     sqlfs_proc_mkdir(sqlfs, "/test", 0666);
     sqlfs_proc_mkdir(sqlfs, "/test/1", 0666);
@@ -53,6 +53,6 @@ int main(int argc, char *argv[])
     i = sqlfs_proc_read(sqlfs, "/big/a/b/c/file", buf, sizeof(buf), 400, &fi);
     assert(buf[97] == '2');
     sqlfs_close(sqlfs);
-
+    return 0;
 }
 

@@ -100,11 +100,13 @@ static const int BLOCK_SIZE = 128 * 1024;
 static pthread_key_t sql_key;
 
 static char default_db_file[PATH_MAX] = { 0 };
+#define default_key_len 8
+static const char default_key[default_key_len] = "unsecure";
 
 
 static int max_inode = 0;
 
-static void * sqlfs_t_init(const char *);
+static void * sqlfs_t_init(const char *, const char* , int);
 static void sqlfs_t_finalize(void *arg);
 
 static void delay(int ms)
@@ -142,7 +144,7 @@ static __inline__ sqlfs_t *get_sqlfs(sqlfs_t *p)
     if (sqlfs)
         return sqlfs;
 
-    sqlfs =  (sqlfs_t*) sqlfs_t_init(default_db_file);
+    sqlfs =  (sqlfs_t*) sqlfs_t_init(default_db_file, default_key, default_key_len);
     pthread_setspecific(sql_key, sqlfs);
     return sqlfs;
 }
@@ -3115,7 +3117,7 @@ static int create_db_table(sqlfs_t *sqlfs)
 
 
 
-static void * sqlfs_t_init(const char *db_file)
+static void * sqlfs_t_init(const char *db_file, const char *key, int nKey)
 {
     int i, r;
     sqlfs_t *sql_fs = calloc(1, sizeof(*sql_fs));
@@ -3128,6 +3130,14 @@ static void * sqlfs_t_init(const char *db_file)
     if (r != SQLITE_OK)
     {
         fprintf(stderr, "Cannot open the database file %s\n", db_file);
+        return 0;
+    }
+
+    r = sqlite3_key(sql_fs->db, key, nKey);
+    printf("Opening the database with provided key %s .\n", key);
+    if (r != SQLITE_OK)
+    {
+        fprintf(stderr, "Opening the database with provided key failed.\n");
         return 0;
     }
 
@@ -3164,11 +3174,11 @@ static void sqlfs_t_finalize(void *arg)
 }
 
 
-int sqlfs_open(const char *db_file, sqlfs_t **sqlfs)
+int sqlfs_open(const char *db_file, const char *key, int nKey, sqlfs_t **sqlfs)
 {
     if (db_file == 0)
         db_file = default_db_file;
-    *sqlfs = sqlfs_t_init(db_file);
+    *sqlfs = sqlfs_t_init(db_file, key, nKey);
     if (!*sqlfs)
         return 0;
     return 1;

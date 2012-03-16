@@ -100,9 +100,6 @@ static const int BLOCK_SIZE = 128 * 1024;
 static pthread_key_t sql_key;
 
 static char default_db_file[PATH_MAX] = { 0 };
-#define default_key_len 8
-static const char default_key[default_key_len] = "unsecure";
-
 
 static int max_inode = 0;
 

@@ -1,20 +1,20 @@
 /******************************************************************************
-Copyright 2006 Palmsource, Inc (an ACCESS company). 
- 
+Copyright 2006 Palmsource, Inc (an ACCESS company).
+
 This library is free software; you can redistribute it and/or
 modify it under the terms of the GNU Lesser General Public
 License as published by the Free Software Foundation; either
 version 2.1 of the License, or (at your option) any later version.
- 
+
 This library is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 Lesser General Public License for more details.
- 
+
 You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
- 
+
 *****************************************************************************/
 /*!
  * @file sqlfs.c
@@ -25,30 +25,30 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *****************************************************************************/
 
 /* the file system is stored in a SQLite table, with the following columns
- 
- 
+
+
 full key path      type     inode      uid      gid        mode   acl      attributes         atime  mtime ctime size  block_size
 (text)            (text)    (integer) (integer) (integer)   (integer)   (text)    (text)        (integer) ...
- 
+
 the key path must start with "/" and is case sensitive
- 
+
 the type can be one of these:  "int", "double",  "string", "dir", "sym link" and "blob"
- 
- 
-for Blobs we will divide them into 8k pieces, each occupying an BLOB object in database indexed by a block number 
+
+
+for Blobs we will divide them into 8k pieces, each occupying an BLOB object in database indexed by a block number
 which starts from 0
- 
+
 created by
- 
+
  CREATE TABLE meta_data(key text, type text, inode integer, uid integer, gid integer, mode integer,  acl text, attribute text,
     atime integer, mtime integer, ctime integer, size integer, block_size integer, primary key (key), unique(key)) ;
-    
- CREATE TABLE value_data (key text, block_no integer, data_block blob, unique(key, block_no));   
- 
+
+ CREATE TABLE value_data (key text, block_no integer, data_block blob, unique(key, block_no));
+
  create index meta_index on meta_data (key);
  create index value_index on value_data (key, block_no);
- 
- 
+
+
 */
 
 /* currently permission control due to the current directory not implemented */
@@ -101,10 +101,9 @@ static pthread_key_t sql_key;
 
 static char default_db_file[PATH_MAX] = { 0 };
 
-
 static int max_inode = 0;
 
-static void * sqlfs_t_init(const char *);
+static void * sqlfs_t_init(const char *, const char* , int);
 static void sqlfs_t_finalize(void *arg);
 
 static void delay(int ms)
@@ -142,7 +141,7 @@ static __inline__ sqlfs_t *get_sqlfs(sqlfs_t *p)
     if (sqlfs)
         return sqlfs;
 
-    sqlfs =  (sqlfs_t*) sqlfs_t_init(default_db_file);
+    sqlfs =  (sqlfs_t*) sqlfs_t_init(default_db_file, 0, 0);
     pthread_setspecific(sql_key, sqlfs);
     return sqlfs;
 }
@@ -3115,7 +3114,7 @@ static int create_db_table(sqlfs_t *sqlfs)
 
 
 
-static void * sqlfs_t_init(const char *db_file)
+static void * sqlfs_t_init(const char *db_file, const char *key, int nKey)
 {
     int i, r;
     sqlfs_t *sql_fs = calloc(1, sizeof(*sql_fs));
@@ -3131,6 +3130,15 @@ static void * sqlfs_t_init(const char *db_file)
         return 0;
     }
 
+    if( nKey && key ) {
+        r = sqlite3_key(sql_fs->db, key, nKey);
+        if (r != SQLITE_OK)
+        {
+            fprintf(stderr, "Opening the database with provided key failed.\n");
+            return 0;
+        }
+    }
+
     sql_fs->default_mode = 0700; /* allows the creation of children under / , default user at initialization is 0 (root)*/
 
     create_db_table( sql_fs);
@@ -3140,7 +3148,9 @@ static void * sqlfs_t_init(const char *db_file)
 
     /*sqlite3_busy_timeout( sql_fs->db, 500); *//* default timeout 0.5 seconds */
     sqlite3_exec(sql_fs->db, "PRAGMA synchronous = OFF;", NULL, NULL, NULL);
-    ensure_existence(sql_fs, "/", TYPE_DIR);
+    r = ensure_existence(sql_fs, "/", TYPE_DIR);
+    if( !r )
+        return 0;
     return (void *) sql_fs;
 }
 
@@ -3163,12 +3173,21 @@ static void sqlfs_t_finalize(void *arg)
 
 }
 
-
 int sqlfs_open(const char *db_file, sqlfs_t **sqlfs)
 {
     if (db_file == 0)
         db_file = default_db_file;
-    *sqlfs = sqlfs_t_init(db_file);
+    *sqlfs = sqlfs_t_init(db_file, 0, 0);
+    if (!*sqlfs)
+        return 0;
+    return 1;
+}
+
+int sqlfs_open_key(const char *db_file, const char *key, int nKey, sqlfs_t **sqlfs)
+{
+    if (db_file == 0)
+        db_file = default_db_file;
+    *sqlfs = sqlfs_t_init(db_file, key, nKey);
     if (!*sqlfs)
         return 0;
     return 1;

@@ -28,11 +28,12 @@ int main(int argc, char *argv[])
     char *data2 = malloc(sizeof(char) * 32000);
     char buf[200];
     struct fuse_file_info fi = { 0 };
-    int i;
+    int i, rc;
     sqlfs_t *sqlfs = 0;
     memset(data2, '2', 32000);
     sqlfs_init(argv[1]);
-    sqlfs_open(argv[1], &sqlfs);
+    rc = sqlfs_open(argv[1], &sqlfs);
+    assert(rc);
 
     sqlfs_proc_mkdir(sqlfs, "/test", 0666);
     sqlfs_proc_mkdir(sqlfs, "/test/1", 0666);

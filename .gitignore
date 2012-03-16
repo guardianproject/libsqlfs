@@ -16,3 +16,4 @@ libsqlfs.pc
 *.o
 *.lo
 tests/sqlfs_test
+tests/sqlfs_test_key

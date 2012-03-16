@@ -28,11 +28,12 @@ int main(int argc, char *argv[])
     char *data2 = malloc(sizeof(char) * 32000);
     char buf[200];
     struct fuse_file_info fi = { 0 };
-    int i;
+    int i, rc;
     sqlfs_t *sqlfs = 0;
     memset(data2, '2', 32000);
     sqlfs_init(argv[1]);
-    sqlfs_open(argv[1], &sqlfs);
+    rc = sqlfs_open_key(argv[1], argv[2], strlen(argv[2]), &sqlfs);
+    assert(rc);
 
     sqlfs_proc_mkdir(sqlfs, "/test", 0666);
     sqlfs_proc_mkdir(sqlfs, "/test/1", 0666);
@@ -42,6 +43,15 @@ int main(int argc, char *argv[])
     sqlfs_proc_write(sqlfs, "/test/2/file", data, strlen(data), 0, &fi);
     sqlfs_proc_rmdir(sqlfs, "/test");
 
+    sqlfs_close(sqlfs);
+
+    sqlfs = 0;
+    sqlfs_init(argv[1]);
+    rc = sqlfs_open_key(argv[1], "fakesecret", 10, &sqlfs);
+    assert(!rc);
+
+    rc = sqlfs_open_key(argv[1], argv[2], strlen(argv[2]), &sqlfs);
+    assert(rc);
 
     i = sqlfs_proc_read(sqlfs, "/test/2/file", buf, sizeof(buf), 0, &fi);
     buf[i] = 0;

@@ -144,7 +144,7 @@ static __inline__ sqlfs_t *get_sqlfs(sqlfs_t *p)
     if (sqlfs)
         return sqlfs;
 
-    sqlfs =  (sqlfs_t*) sqlfs_t_init(default_db_file, default_key, default_key_len);
+    sqlfs =  (sqlfs_t*) sqlfs_t_init(default_db_file, 0, 0);
     pthread_setspecific(sql_key, sqlfs);
     return sqlfs;
 }
@@ -3133,12 +3133,13 @@ static void * sqlfs_t_init(const char *db_file, const char *key, int nKey)
         return 0;
     }
 
-    r = sqlite3_key(sql_fs->db, key, nKey);
-    printf("Opening the database with provided key %s .\n", key);
-    if (r != SQLITE_OK)
-    {
-        fprintf(stderr, "Opening the database with provided key failed.\n");
-        return 0;
+    if( nKey && key ) {
+        r = sqlite3_key(sql_fs->db, key, nKey);
+        if (r != SQLITE_OK)
+        {
+            fprintf(stderr, "Opening the database with provided key failed.\n");
+            return 0;
+        }
     }
 
     sql_fs->default_mode = 0700; /* allows the creation of children under / , default user at initialization is 0 (root)*/
@@ -3150,7 +3151,9 @@ static void * sqlfs_t_init(const char *db_file, const char *key, int nKey)
 
     /*sqlite3_busy_timeout( sql_fs->db, 500); *//* default timeout 0.5 seconds */
     sqlite3_exec(sql_fs->db, "PRAGMA synchronous = OFF;", NULL, NULL, NULL);
-    ensure_existence(sql_fs, "/", TYPE_DIR);
+    r = ensure_existence(sql_fs, "/", TYPE_DIR);
+    if( !r )
+        return 0;
     return (void *) sql_fs;
 }
 
@@ -3173,8 +3176,17 @@ static void sqlfs_t_finalize(void *arg)
 
 }
 
+int sqlfs_open(const char *db_file, sqlfs_t **sqlfs)
+{
+    if (db_file == 0)
+        db_file = default_db_file;
+    *sqlfs = sqlfs_t_init(db_file, 0, 0);
+    if (!*sqlfs)
+        return 0;
+    return 1;
+}
 
-int sqlfs_open(const char *db_file, const char *key, int nKey, sqlfs_t **sqlfs)
+int sqlfs_open_key(const char *db_file, const char *key, int nKey, sqlfs_t **sqlfs)
 {
     if (db_file == 0)
         db_file = default_db_file;

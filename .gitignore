@@ -2,13 +2,19 @@
 TAGS
 .libs
 .deps
+aclocal.m4
 autom4te.cache
 Makefile
 Makefile.in
 config.log
 config.status
+configure
+depcomp
+install-sh
 libtool
-
+ltmain.sh
+missing
+#
 # build products
 fuse_libsqlfs
 libsqlfs.la

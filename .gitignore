@@ -18,7 +18,7 @@ m4/
 #
 # build products
 fuse_libsqlfs
-libsqlfs.la
+libsqlfs-1.0.la
 libsqlfs.pc
 *.o
 *.lo

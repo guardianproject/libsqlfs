@@ -20,6 +20,9 @@ AC_SUBST(DEPS_LIBS)
 
 AC_SYS_LARGEFILE
 
+AC_CHECK_HEADER(fuse.h, [fuse=yes], [fuse=no])
+AM_CONDITIONAL(FUSE, test x$fuse = xyes)
+
 AC_CONFIG_FILES(Makefile tests/Makefile libsqlfs.pc)
 
 AC_OUTPUT

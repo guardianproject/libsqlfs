@@ -51,7 +51,7 @@ typedef struct
     mode_t default_mode;
 
     sqlite3_stmt *stmts[200];
-#ifndef FUSE
+#ifndef HAVE_FUSE_H
     uid_t uid;
     gid_t gid;
 #endif

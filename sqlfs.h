@@ -44,7 +44,7 @@ extern "C" {
 
 
 
-#ifndef FUSE
+#ifndef HAVE_FUSE_H
 
     /* the following struct derived from the FUSE header file
 
@@ -110,7 +110,7 @@ extern "C" {
 
     int sqlfs_init(const char *);
 
-#ifdef FUSE
+#ifdef HAVE_FUSE_H
     int sqlfs_fuse_main(int argc, char **argv);
 #endif
 

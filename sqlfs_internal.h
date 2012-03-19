@@ -93,10 +93,10 @@ int sqlfs_del_tree(sqlfs_t *sqlfs, const char *key);
 int sqlfs_del_tree_with_exclusion(sqlfs_t *sqlfs, const char *key, const char *exclusion_pattern);
 
 int sqlfs_get_value(sqlfs_t *sqlfs, const char *key, key_value *value,
-    size_t begin, size_t end);
+                    size_t begin, size_t end);
 
 int sqlfs_set_value(sqlfs_t *sqlfs, const char *key, const key_value *value,
-    size_t begin,  size_t end);
+                    size_t begin,  size_t end);
 
 int sqlfs_get_attr(sqlfs_t *sqlfs, const char *key, key_attr *attr);
 
@@ -117,7 +117,7 @@ int sqlfs_proc_getattr(sqlfs_t *, const char *path, struct stat *stbuf);
 int sqlfs_proc_access(sqlfs_t *, const char *path, int mask);
 int sqlfs_proc_readlink(sqlfs_t *, const char *path, char *buf, size_t size);
 int sqlfs_proc_readdir(sqlfs_t *, const char *path, void *buf, fuse_fill_dir_t filler,
-                  off_t offset, struct fuse_file_info *fi);
+                       off_t offset, struct fuse_file_info *fi);
 int sqlfs_proc_mknod(sqlfs_t *, const char *path, mode_t mode, dev_t rdev);
 int sqlfs_proc_mkdir(sqlfs_t *, const char *path, mode_t mode);
 int sqlfs_proc_unlink(sqlfs_t *, const char *path);
@@ -131,14 +131,14 @@ int sqlfs_proc_truncate(sqlfs_t *, const char *path, off_t size);
 int sqlfs_proc_utime(sqlfs_t *, const char *path, struct utimbuf *buf);
 int sqlfs_proc_open(sqlfs_t *, const char *path, struct fuse_file_info *fi);
 int sqlfs_proc_read(sqlfs_t *, const char *path, char *buf, size_t size, off_t offset, struct
-    fuse_file_info *fi);
+                    fuse_file_info *fi);
 int sqlfs_proc_write(sqlfs_t *, const char *path, const char *buf, size_t size, off_t offset,
-    struct fuse_file_info *fi);
+                     struct fuse_file_info *fi);
 int sqlfs_proc_statfs(sqlfs_t *, const char *path, struct statvfs *stbuf);
 int sqlfs_proc_release(sqlfs_t *, const char *path, struct fuse_file_info *fi);
 int sqlfs_proc_fsync(sqlfs_t *, const char *path, int isfdatasync, struct fuse_file_info *fi);
 int sqlfs_proc_setxattr(sqlfs_t *, const char *path, const char *name, const char *value,
-    size_t size, int flags);
+                        size_t size, int flags);
 int sqlfs_proc_getxattr(sqlfs_t *, const char path, const char *name, char *value, size_t size);
 int sqlfs_proc_listxattr(sqlfs_t *, const char *path, char *list, size_t size);
 int sqlfs_proc_removexattr(sqlfs_t *, const char *path, const char *name);

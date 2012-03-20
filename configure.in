@@ -13,9 +13,19 @@ AC_PROG_LIBTOOL
 
 AC_DEFINE(_GNU_SOURCE, 1)
 
-PKG_CHECK_MODULES(DEPS, sqlite3)
-AC_SUBST(DEPS_CFLAGS)
-AC_SUBST(DEPS_LIBS)
+AC_CHECK_LIB(sqlcipher, sqlite3_key, [sqlcipher=yes])
+AC_CHECK_LIB(sqlite3, sqlite3_db_filename, [sqlite=yes])
+
+if test "$sqlcipher" = "yes"; then
+    echo "Using libsqlcipher"
+    LIBS="$LIBS -lsqlcipher"
+elif test "$sqlite" = "yes"; then
+    echo "Using libsqlite3"
+    LIBS="$LIBS -lsqlite3"
+else
+    echo "Error! SQLCipher or SQLite3 is required!"
+    exit -1
+fi
 
 AC_SYS_LARGEFILE
 

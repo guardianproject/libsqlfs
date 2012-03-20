@@ -32,19 +32,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 extern "C" {
 #endif
 
-
-#include <stdint.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/statvfs.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <utime.h>
-
-
-
-#ifndef HAVE_FUSE_H
+#ifdef HAVE_FUSE_H
+# include "fuse.h"
+#else
 
     /* the following struct derived from the FUSE header file
 
@@ -99,17 +89,10 @@ extern "C" {
     typedef int (*fuse_fill_dir_t) (void *buf, const char *name,
                                     const struct stat *stbuf, off_t off);
 
-
-#else
-
-#include "fuse.h"
-
-#endif
-
+#endif /* HAVE_FUSE_H */
 #include "sqlfs_internal.h"
 
     int sqlfs_init(const char *);
-
 #ifdef HAVE_FUSE_H
     int sqlfs_fuse_main(int argc, char **argv);
 #endif

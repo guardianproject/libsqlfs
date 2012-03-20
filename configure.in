@@ -9,7 +9,6 @@ AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE(libsqlfs, 1.1)
 
 AC_PROG_CC
-
 AC_PROG_LIBTOOL
 
 AC_DEFINE(_GNU_SOURCE, 1)
@@ -22,6 +21,8 @@ AC_SYS_LARGEFILE
 
 AC_CHECK_HEADER(fuse.h, [fuse=yes], [fuse=no])
 AM_CONDITIONAL(FUSE, test x$fuse = xyes)
+
+AC_CHECK_HEADERS([sys/statvfs.h])
 
 AC_CONFIG_FILES(Makefile tests/Makefile libsqlfs.pc)
 

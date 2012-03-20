@@ -23,7 +23,16 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/statvfs.h>
+#ifdef HAVE_SYS_STATVFS_H
+# include <sys/statvfs.h>
+#elif defined __ANDROID__
+// Android uses a statvfs-like statfs struct and call.
+# include <sys/vfs.h>
+# define statvfs statfs
+# define fstatvfs fstatfs
+#else
+# error "missing a source of the statvfs struct (i.e. <sys/statvfs.h>)"
+#endif
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -148,4 +157,4 @@ int sqlfs_open_key(const char *db_file, const char *key, int nKey, sqlfs_t **sql
 int sqlfs_close(sqlfs_t *);
 
 
-#endif
+#endif /* NOT __SQLFS_INTERNAL_H__ */

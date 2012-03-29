@@ -210,7 +210,7 @@ void clean_value(key_value *value)
 static int begin_transaction(sqlfs_t *sqlfs)
 {
     int i;
-#ifdef HAVE_FUSE_H
+#ifdef HAVE_LIBFUSE
     const char *cmd = "begin exclusive;";
 
 #else
@@ -376,7 +376,7 @@ static int break_transaction(sqlfs_t *sqlfs, int r0)
 
 
 
-/*#ifndef HAVE_FUSE_H
+/*#ifndef HAVE_LIBFUSE
 #define BEGIN
 #define COMPLETE(r)
 #else
@@ -965,7 +965,7 @@ static int ensure_existence(sqlfs_t *sqlfs, const char *key, const char *type)
         attr.path = strdup(key);
         attr.type = strdup(type);
         attr.mode = get_sqlfs(sqlfs)->default_mode; /* to use default */
-#ifdef HAVE_FUSE_H
+#ifdef HAVE_LIBFUSE
         attr.uid = geteuid();
         attr.gid = getegid();
 #else
@@ -1733,7 +1733,7 @@ static int check_parent_write(sqlfs_t *sqlfs, const char *path)
         result = (sqlfs_proc_access(sqlfs, (ppath), W_OK | X_OK));
 //fprintf(stderr, "check directory write 1st %s %d uid %d gid %d\n",   ppath, result, get_sqlfs(sqlfs)->uid, get_sqlfs(sqlfs)->gid);//???
 
-#ifndef HAVE_FUSE_H
+#ifndef HAVE_LIBFUSE
         if (result == -ENOENT)
         {
             result = check_parent_write(sqlfs, ppath);
@@ -1828,7 +1828,7 @@ int sqlfs_proc_access(sqlfs_t *sqlfs, const char *path, int mask)
 {
 
     int i, r = SQLITE_OK, result = 0;
-#ifdef HAVE_FUSE_H
+#ifdef HAVE_LIBFUSE
     gid_t gid = getegid();
     uid_t uid = geteuid();
 #else
@@ -2075,7 +2075,7 @@ int sqlfs_proc_mknod(sqlfs_t *sqlfs, const char *path, mode_t mode, dev_t rdev)
     attr.path = strdup(path);
     attr.type = strdup(TYPE_BLOB);
     attr.mode = mode;
-#ifdef HAVE_FUSE_H
+#ifdef HAVE_LIBFUSE
     attr.gid = getegid();
     attr.uid = geteuid();
 #else
@@ -2115,7 +2115,7 @@ int sqlfs_proc_mkdir(sqlfs_t *sqlfs, const char *path, mode_t mode)
     attr.type = strdup(TYPE_DIR);
     attr.mode = mode;
 
-#ifdef HAVE_FUSE_H
+#ifdef HAVE_LIBFUSE
     attr.gid = getegid();
     attr.uid = geteuid();
 #else
@@ -2203,7 +2203,7 @@ int sqlfs_proc_symlink(sqlfs_t *sqlfs, const char *path, const char *to)
     attr.path = strdup(to);
     attr.type = strdup(TYPE_SYM_LINK);
     attr.mode = get_sqlfs(sqlfs)->default_mode; /* 0777 ?? */
-#ifdef HAVE_FUSE_H
+#ifdef HAVE_LIBFUSE
     attr.uid = geteuid();
     attr.gid = getegid();
 #else
@@ -2340,7 +2340,7 @@ int sqlfs_proc_chmod(sqlfs_t *sqlfs, const char *path, mode_t mode)
             return -EBUSY;
         return -ENOENT;
     }
-#ifdef HAVE_FUSE_H
+#ifdef HAVE_LIBFUSE
     if ((geteuid() != 0) && (geteuid() != (uid_t) attr.uid))
 #else
     if ((get_sqlfs(sqlfs)->uid != 0) && (get_sqlfs(sqlfs)->uid != (uid_t) attr.uid))
@@ -2385,7 +2385,7 @@ int sqlfs_proc_chown(sqlfs_t *sqlfs, const char *path, uid_t uid, gid_t gid)
             return -EBUSY;
         return -ENOENT;
     }
-#ifdef HAVE_FUSE_H
+#ifdef HAVE_LIBFUSE
     if ((geteuid() == 0) || ((geteuid() == attr.uid) && (uid == (uid_t) attr.uid)))
 #else
     if ((get_sqlfs(sqlfs)->uid == 0) || ((get_sqlfs(sqlfs)->uid == (uid_t) attr.uid) && (uid == (uid_t) attr.uid)))
@@ -2620,7 +2620,7 @@ int sqlfs_proc_open(sqlfs_t *sqlfs, const char *path, struct fuse_file_info *fi)
     if ((result == 0) && (fi->flags & O_CREAT))
     {
         attr.mode = get_sqlfs(sqlfs)->default_mode; /* to use some kind of default */
-#ifdef HAVE_FUSE_H
+#ifdef HAVE_LIBFUSE
         attr.uid = geteuid();
         attr.gid = getegid();
 #else
@@ -2728,7 +2728,7 @@ int sqlfs_proc_write(sqlfs_t *sqlfs, const char *path, const char *buf, size_t s
         attr.path = strdup(path);
         attr.type = strdup(TYPE_BLOB);
         attr.mode = get_sqlfs(sqlfs)->default_mode; /* use default mode */
-#ifdef HAVE_FUSE_H
+#ifdef HAVE_LIBFUSE
         attr.uid = geteuid();
         attr.gid = getegid();
 #else
@@ -3193,7 +3193,7 @@ int sqlfs_close(sqlfs_t *sqlfs)
 }
 
 
-#ifdef HAVE_FUSE_H
+#ifdef HAVE_LIBFUSE
 
 
 static int sqlfs_op_getattr(const char *path, struct stat *stbuf)
@@ -3313,7 +3313,7 @@ static struct fuse_operations sqlfs_op;
 
 int sqlfs_init(const char *db_file_name)
 {
-#ifdef HAVE_FUSE_H
+#ifdef HAVE_LIBFUSE
     sqlfs_op.getattr	= sqlfs_op_getattr;
     sqlfs_op.access	= sqlfs_op_access;
     sqlfs_op.readlink	= sqlfs_op_readlink;
@@ -3351,7 +3351,7 @@ int sqlfs_init(const char *db_file_name)
     return 0;
 }
 
-#ifdef HAVE_FUSE_H
+#ifdef HAVE_LIBFUSE
 
 int sqlfs_fuse_main(int argc, char **argv)
 {

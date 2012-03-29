@@ -32,7 +32,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 extern "C" {
 #endif
 
-#ifdef HAVE_FUSE_H
+#ifdef HAVE_LIBFUSE
 # include "fuse.h"
 #else
 
@@ -89,11 +89,11 @@ extern "C" {
     typedef int (*fuse_fill_dir_t) (void *buf, const char *name,
                                     const struct stat *stbuf, off_t off);
 
-#endif /* HAVE_FUSE_H */
+#endif /* HAVE_LIBFUSE */
 #include "sqlfs_internal.h"
 
     int sqlfs_init(const char *);
-#ifdef HAVE_FUSE_H
+#ifdef HAVE_LIBFUSE
     int sqlfs_fuse_main(int argc, char **argv);
 #endif
 

@@ -23,15 +23,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include <sys/types.h>
 #include <sys/stat.h>
-#ifdef HAVE_SYS_STATVFS_H
-# include <sys/statvfs.h>
-#elif defined __ANDROID__
+#ifdef __ANDROID__
 // Android uses a statvfs-like statfs struct and call.
 # include <sys/vfs.h>
 # define statvfs statfs
 # define fstatvfs fstatfs
 #else
-# error "missing a source of the statvfs struct (i.e. <sys/statvfs.h>)"
+# include <sys/statvfs.h>
 #endif
 #include <unistd.h>
 #include <fcntl.h>
@@ -60,7 +58,7 @@ typedef struct
     mode_t default_mode;
 
     sqlite3_stmt *stmts[200];
-#ifndef HAVE_FUSE_H
+#ifndef HAVE_LIBFUSE
     uid_t uid;
     gid_t gid;
 #endif

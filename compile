@@ -1,3 +1,0 @@
-
-gcc  -g -O0 -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 -D_REENTRANT  -I/usr/local/include -I. sqlfs.c test.c /usr/local/lib/libsqlite3.a
-

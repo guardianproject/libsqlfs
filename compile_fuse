@@ -1,6 +1,0 @@
-#!/bin/sh
-#
-# on Debian/Ubuntu, do: apt-get install libfuse2-dev libsqlite3-dev
-
-gcc  -g -O0  -DFUSE -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 -D_REENTRANT -DFUSE_USE_VERSION=25 -I. sqlfs.c fuse_main.c /usr/lib/libfuse.a -o fuse_libsqlfs -lpthread -lsqlite3 -lrt
-

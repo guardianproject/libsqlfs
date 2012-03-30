@@ -33,7 +33,7 @@ case $host in
 esac
 
 AC_ARG_WITH([sqlcipher],
-            [AS_HELP_STRING([--with-sqlcipher], [use SQLCIPHER library for client])],
+            [AS_HELP_STRING([--with-sqlcipher], [use SQLCipher library for SQLite])],
             [],
             [with_sqlcipher=check])
 SQLCIPHER=

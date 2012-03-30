@@ -22,6 +22,7 @@ libsqlfs-1.0.la
 libsqlfs.pc
 *.o
 *.lo
+tests/fsx
 tests/test
 tests/test.db
 tests/test_key

@@ -2803,7 +2803,7 @@ int sqlfs_proc_statfs(sqlfs_t *sqlfs, const char *path, struct statvfs *stbuf)
     if (rc == -1) {
         return -errno;
     }
-    stbuf->f_namemax = sb.f_namelen;
+    stbuf->f_namelen = sb.f_namelen;
 #else
     struct statvfs sb;
     int rc = statvfs(default_db_file, &sb);
@@ -2812,7 +2812,12 @@ int sqlfs_proc_statfs(sqlfs_t *sqlfs, const char *path, struct statvfs *stbuf)
     }
     stbuf->f_namemax = sb.f_namemax;
     stbuf->f_flag = sb.f_flag | ST_NOSUID; // TODO set S_RDONLY based on perms of file
+    /* TODO implement the inode info using information from the db itself */
+    stbuf->f_favail = 99;
 #endif
+    /* TODO implement the inode info using information from the db itself */
+    stbuf->f_ffree = 99;
+    stbuf->f_files = 999;
     /* some guesses at how things should be represented */
     stbuf->f_frsize = BLOCK_SIZE;
     stbuf->f_bsize = sb.f_bsize;
@@ -2824,11 +2829,6 @@ int sqlfs_proc_statfs(sqlfs_t *sqlfs, const char *path, struct statvfs *stbuf)
         return -errno;
     }
     sb.f_blocks = st.st_blocks * sb.f_bsize / stbuf->f_frsize;
-
-/* TODO implement the inode info using information from the db itself */
-    stbuf->f_ffree = 99;
-    stbuf->f_files = 999;
-    stbuf->f_favail = 99;
     return 0;
 }
 

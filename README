@@ -90,21 +90,20 @@ otherwise via options to configure.
 
 * As an FUSE module
 
-Currently FUSE module build is not integrated with the configure script;
-instead a script compile_fuse is supplied for building the module.  You may
-need to edit the include paths to adjust for your particular environment. 
+If you want to build it as a FUSE module, you need to have libfuse
+installed on your system.  This is less tested than the direct API.
 
-After running the script you shall have an executable called fuse_libsqlfs.
+After running the script you shall have an executable called fuse_sqlfs.
 Run it as root to start a FUSE session on top of libsqlfs:
 
-fuse_libsqlfs <mnt point> 
+fuse_sqlfs <mnt point> 
 
 then you shall see the libsqlfs file space exposed, and
 can be accessed by normal applications,  via the <mnt point>.
 
 example:
 
-fuse_libsqlfs /mnt/sqlfs &
+fuse_sqlfs /mnt/sqlfs &
 
 ls /mnt/sqlfs
 
@@ -262,5 +261,8 @@ the database.
 
 
 For more information, please contact:
-
 guardian-dev@lists.mayfirst.org
+
+The original authors are:
+Peter van der Linden  peter.vanderlinden@palmsource.com 
+Andy Tai, andy.tai@palmsource.com

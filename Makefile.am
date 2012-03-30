@@ -11,9 +11,9 @@ libsqlfs_1_0_la_SOURCES = sqlfs.c
 libsqlfs_1_0_la_LIBADD = $(DEPS_LIBS)
 libsqlfs_1_0_la_LDFLAGS = -version-info 1:0:0
 
-if WITH_FUSE
+if WITH_LIBFUSE
 bin_PROGRAMS = fuse_sqlfs
-fuse_sqlfs_SOURCES = fuse_main.c
+fuse_sqlfs_SOURCES = fuse_sqlfs.c
 fuse_sqlfs_LDADD = -lpthread @SQLITE@ @LIBFUSE@ $(DEPS_LIBS) ./.libs/libsqlfs-1.0.la
 endif
 

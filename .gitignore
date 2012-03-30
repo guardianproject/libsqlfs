@@ -17,10 +17,12 @@ missing
 m4/
 #
 # build products
-fuse_libsqlfs
+fuse_sqlfs
 libsqlfs-1.0.la
 libsqlfs.pc
 *.o
 *.lo
-tests/sqlfs_test
-tests/sqlfs_test_key
+tests/test
+tests/test.db
+tests/test_key
+tests/test_fuse

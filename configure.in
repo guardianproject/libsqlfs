@@ -13,6 +13,25 @@ AC_PROG_LIBTOOL
 
 AC_DEFINE(_GNU_SOURCE, 1)
 
+case $host in
+*darwin*)
+        # to prevent this error:
+        # fuse/fuse_compat.h:68:24: error: sys/statfs.h: No such file or directory 
+        # we include this:
+        CFLAGS="$CFLAGS -D__FreeBSD__=10"
+        # support Fink
+        if test -d /sw; then
+             CFLAGS="$CFLAGS -I/sw/include"
+             LDFLAGS="$LDFLAGS -I/sw/lib"
+        fi
+        # support MacPorts
+        if test -d /opt/local; then
+             CFLAGS="$CFLAGS -I/opt/local/include"
+             LDFLAGS="$LDFLAGS -I/opt/local/lib"
+        fi
+        ;;
+esac
+
 AC_ARG_WITH([sqlcipher],
             [AS_HELP_STRING([--with-sqlcipher], [use SQLCIPHER library for client])],
             [],
@@ -33,13 +52,13 @@ AS_IF([test "x$with_sqlcipher" != xno],
              ])])
 AM_CONDITIONAL(WITH_SQLCIPHER, [test "$HAVE_SQLCIPHER" = "1"])
 
-AC_CHECK_LIB(sqlite3, sqlite3_db_filename, [with_sqlite=yes])
+AC_CHECK_LIB(sqlite3, sqlite3_open, [with_sqlite=yes])
 AM_CONDITIONAL(SQLITE, test x$with_sqlite = xyes)
 
 if test "$with_sqlcipher" = "yes"; then
-    echo "Using libsqlcipher"
+    echo "Using SQLCipher"
 elif test "$with_sqlite" = "yes"; then
-    echo "Using libsqlite3"
+    echo "Using SQLite"
     AC_SUBST([SQLITE], ["-lsqlite3"])
 else
     echo "Error! SQLCipher or SQLite3 is required!"

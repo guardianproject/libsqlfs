@@ -2794,8 +2794,7 @@ int sqlfs_proc_write(sqlfs_t *sqlfs, const char *path, const char *buf, size_t s
 
 int sqlfs_proc_statfs(sqlfs_t *sqlfs, const char *path, struct statvfs *stbuf)
 {
-    /* file system information not supported as we have no idea how
-    to map that to a SQLite file */
+    // TODO implement this, we can get some useful info like size of db file, type, etc.
     return -ENOSYS;
 }
 
@@ -3121,6 +3120,7 @@ static void * sqlfs_t_init(const char *db_file, const char *key, int nKey)
         return 0;
     }
 
+#ifdef HAVE_SQLCIPHER
     if( nKey && key )
     {
         r = sqlite3_key(sql_fs->db, key, nKey);
@@ -3130,6 +3130,7 @@ static void * sqlfs_t_init(const char *db_file, const char *key, int nKey)
             return 0;
         }
     }
+#endif
 
     sql_fs->default_mode = 0700; /* allows the creation of children under / , default user at initialization is 0 (root)*/
 
@@ -3175,6 +3176,7 @@ int sqlfs_open(const char *db_file, sqlfs_t **sqlfs)
     return 1;
 }
 
+#ifdef HAVE_SQLCIPHER
 int sqlfs_open_key(const char *db_file, const char *key, int nKey, sqlfs_t **sqlfs)
 {
     if (db_file == 0)
@@ -3184,6 +3186,7 @@ int sqlfs_open_key(const char *db_file, const char *key, int nKey, sqlfs_t **sql
         return 0;
     return 1;
 }
+#endif
 
 int sqlfs_close(sqlfs_t *sqlfs)
 {

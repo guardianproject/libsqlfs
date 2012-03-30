@@ -13,17 +13,34 @@ AC_PROG_LIBTOOL
 
 AC_DEFINE(_GNU_SOURCE, 1)
 
-AC_CHECK_LIB(sqlcipher, sqlite3_key, [sqlcipher=yes])
-AM_CONDITIONAL(SQLCIPHER, test x$sqlcipher = xyes)
-AC_CHECK_LIB(sqlite3, sqlite3_db_filename, [sqlite=yes])
-AM_CONDITIONAL(SQLITE, test x$sqlite = xyes)
+AC_ARG_WITH([sqlcipher],
+            [AS_HELP_STRING([--with-sqlcipher], [use SQLCIPHER library for client])],
+            [],
+            [with_sqlcipher=check])
+SQLCIPHER=
+AS_IF([test "x$with_sqlcipher" != xno],
+	        [AC_CHECK_LIB([sqlcipher], [sqlite3_key],
+             [AC_SUBST([SQLITE], ["-lsqlcipher"])
+               AC_DEFINE([HAVE_SQLCIPHER], [1],
+                         [Define if you have sqlcipher])
+               HAVE_SQLCIPHER=1
+	       LIBS="$LIBS -lpthread"
+              ],
+             [if test "x$with_sqlcipher" != xcheck; then
+                 AC_MSG_FAILURE(
+                   [--with-sqlcipher was given but test failed])
+               fi
+             ])])
+AM_CONDITIONAL(WITH_SQLCIPHER, [test "$HAVE_SQLCIPHER" = "1"])
 
-if test "$sqlcipher" = "yes"; then
+AC_CHECK_LIB(sqlite3, sqlite3_db_filename, [with_sqlite=yes])
+AM_CONDITIONAL(SQLITE, test x$with_sqlite = xyes)
+
+if test "$with_sqlcipher" = "yes"; then
     echo "Using libsqlcipher"
-    LIBS="$LIBS -lsqlcipher"
-elif test "$sqlite" = "yes"; then
+elif test "$with_sqlite" = "yes"; then
     echo "Using libsqlite3"
-    LIBS="$LIBS -lsqlite3"
+    AC_SUBST([SQLITE], ["-lsqlite3"])
 else
     echo "Error! SQLCipher or SQLite3 is required!"
     exit -1
@@ -53,11 +70,8 @@ AS_IF([test "x$with_fuse" != xno],
              ])])
 AM_CONDITIONAL(WITH_FUSE, [test "$HAVE_LIBFUSE" = "1"])
 
+
 AC_CONFIG_FILES(Makefile tests/Makefile libsqlfs.pc)
 
 AC_OUTPUT
-
-
-
-
 

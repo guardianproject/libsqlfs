@@ -122,6 +122,7 @@ int sqlfs_break_transaction(sqlfs_t *sqlfs);
 
 int sqlfs_proc_getattr(sqlfs_t *, const char *path, struct stat *stbuf);
 int sqlfs_proc_access(sqlfs_t *, const char *path, int mask);
+int sqlfs_proc_create(sqlfs_t *sqlfs, const char *path, mode_t mode, struct fuse_file_info *fi);
 int sqlfs_proc_readlink(sqlfs_t *, const char *path, char *buf, size_t size);
 int sqlfs_proc_readdir(sqlfs_t *, const char *path, void *buf, fuse_fill_dir_t filler,
                        off_t offset, struct fuse_file_info *fi);
@@ -150,8 +151,10 @@ int sqlfs_proc_getxattr(sqlfs_t *, const char path, const char *name, char *valu
 int sqlfs_proc_listxattr(sqlfs_t *, const char *path, char *list, size_t size);
 int sqlfs_proc_removexattr(sqlfs_t *, const char *path, const char *name);
 
-int sqlfs_open(const char *db_file, sqlfs_t **sqlfs);
+#ifdef HAVE_SQLCIPHER
 int sqlfs_open_key(const char *db_file, const char *key, int nKey, sqlfs_t **sqlfs);
+#endif
+int sqlfs_open(const char *db_file, sqlfs_t **sqlfs);
 int sqlfs_close(sqlfs_t *);
 
 

@@ -1,11 +1,10 @@
 AM_CFLAGS = -I$(top_srcdir) @DEFS@
-
-noinst_PROGRAMS = sqlfs_test sqlfs_test_key
+AM_LDFLAGS = $(top_builddir)/libsqlfs-1.0.la -lpthread @SQLITE@ @LIBFUSE@
+noinst_PROGRAMS = sqlfs_test
 
 sqlfs_test_SOURCES = test.c
-sqlfs_test_LDADD = $(top_builddir)/libsqlfs-1.0.la $(DEPS_LIBS) -lpthread
 
-if SQLCIPHER
+if WITH_SQLCIPHER
+noinst_PROGRAMS += sqlfs_test_key
 sqlfs_test_key_SOURCES = test_key.c
-sqlfs_test_key_LDADD = $(top_builddir)/libsqlfs-1.0.la $(DEPS_LIBS) -lpthread
 endif

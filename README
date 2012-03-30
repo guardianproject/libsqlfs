@@ -247,12 +247,20 @@ on both 32-bit i386 and StrongArm.
 Supported Database
 ==================
 
-To date, only SQLite is supported.
+To date, only SQLite and SQLCipher are supported.  SQLCipher is a
+version of SQLite that provides page-by-page AES-256 encryption.
+
+Notes on the Code
+=================
+
+There is a macro INDEX used in the implementation in sqlfs.c.  It is
+re-defined for each function that writes to the database using an
+index number for that particular function.  This index number is then
+used in the macros PREPARE_STMT and DONE_PREPARE for interacting with
+the database.
 
 
 
 For more information, please contact:
 
-Peter van der Linden  peter.vanderlinden@palmsource.com 
-Andy Tai, andy.tai@palmsource.com
-
+guardian-dev@lists.mayfirst.org

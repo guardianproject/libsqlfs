@@ -2792,10 +2792,44 @@ int sqlfs_proc_write(sqlfs_t *sqlfs, const char *path, const char *buf, size_t s
     return result;
 }
 
+/* we are faking this somewhat by using the data from the underlying
+ partition that the database file is stored on. That means we ignore
+ the path passed in and just use the default_db_name. */
 int sqlfs_proc_statfs(sqlfs_t *sqlfs, const char *path, struct statvfs *stbuf)
 {
-    // TODO implement this, we can get some useful info like size of db file, type, etc.
-    return -ENOSYS;
+#ifdef __ANDROID__
+    struct statfs sb;
+    int rc = TEMP_FAILURE_RETRY(statfs(default_db_file, &sb));
+    if (rc == -1) {
+        return -errno;
+    }
+    stbuf->f_namemax = sb.f_namelen;
+#else
+    struct statvfs sb;
+    int rc = statvfs(default_db_file, &sb);
+    if (rc == -1) {
+        return -errno;
+    }
+    stbuf->f_namemax = sb.f_namemax;
+    stbuf->f_flag = sb.f_flag | ST_NOSUID; // TODO set S_RDONLY based on perms of file
+#endif
+    /* some guesses at how things should be represented */
+    stbuf->f_frsize = BLOCK_SIZE;
+    stbuf->f_bsize = sb.f_bsize;
+    stbuf->f_bfree = sb.f_bfree;
+
+    struct stat st;
+    rc = stat(default_db_file, &st);
+    if (rc == -1) {
+        return -errno;
+    }
+    sb.f_blocks = st.st_blocks * sb.f_bsize / stbuf->f_frsize;
+
+/* TODO implement the inode info using information from the db itself */
+    stbuf->f_ffree = 99;
+    stbuf->f_files = 999;
+    stbuf->f_favail = 99;
+    return 0;
 }
 
 int sqlfs_proc_release(sqlfs_t *sqlfs, const char *path, struct fuse_file_info *fi)

@@ -20,49 +20,151 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include <time.h>
 #include "sqlfs.h"
+
+int exists(char *filename)
+{
+    FILE *file;
+    if ((file = fopen(filename, "r")) == NULL) {
+        if (errno == ENOENT) {
+            return 0;
+        } else {
+            // Check for other errors too, like EACCES and EISDIR
+            printf("Error occured: %d", errno);
+        }
+        return 0;
+    } else {
+        fclose(file);
+    }
+    return 1;
+}
 
 int main(int argc, char *argv[])
 {
+    char *database_filename = "test_key.db";
+    char *database_password = "mytestpassword";
     char *data = "this is a string";
-    char *data2 = malloc(sizeof(char) * 32000);
+    char *testfilename = "";
     char buf[200];
+
     struct fuse_file_info fi = { 0 };
     int i, rc;
     sqlfs_t *sqlfs = 0;
-    memset(data2, '2', 32000);
-    sqlfs_init(argv[1]);
-    rc = sqlfs_open_key(argv[1], argv[2], strlen(argv[2]), &sqlfs);
+
+    if(argc > 1)
+      database_filename = argv[1];
+    if(argc > 2)
+      database_password = argv[2];
+    if(exists(database_filename))
+    {
+       printf("\n(test database '%s' exists, deleting!)\n\n", database_filename);
+       unlink(database_filename);
+    }
+    printf("Creating %s...", database_filename);
+    sqlfs_init(database_filename);
+    rc = sqlfs_open_key(database_filename, database_password, 
+                        strlen(database_password), &sqlfs);
     assert(rc);
+    rc = sqlfs_close(sqlfs);
+    assert(rc);
+    printf("passed\n");
 
-    sqlfs_proc_mkdir(sqlfs, "/test", 0666);
-    sqlfs_proc_mkdir(sqlfs, "/test/1", 0666);
-    sqlfs_proc_mkdir(sqlfs, "/test/2", 0666);
-    sqlfs_proc_mkdir(sqlfs, "/a/b/c/d/e/f/g", 0666);
-    fi.flags |= ~0;
-    sqlfs_proc_write(sqlfs, "/test/2/file", data, strlen(data), 0, &fi);
-    sqlfs_proc_rmdir(sqlfs, "/test");
-
-    sqlfs_close(sqlfs);
-
-    sqlfs = 0;
-    sqlfs_init(argv[1]);
+    printf("Opening database with wrong password...");
     rc = sqlfs_open_key(argv[1], "fakesecret", 10, &sqlfs);
     assert(!rc);
+    printf("passed\n");
 
-    rc = sqlfs_open_key(argv[1], argv[2], strlen(argv[2]), &sqlfs);
+    printf("Opening database with correct password...");
+    rc = sqlfs_open_key(database_filename, database_password, 
+                        strlen(database_password), &sqlfs);
     assert(rc);
+    printf("passed\n");
 
-    i = sqlfs_proc_read(sqlfs, "/test/2/file", buf, sizeof(buf), 0, &fi);
+    printf("Testing mkdir with sleep...");
+    testfilename = "/mkdir-with-sleep0";
+    sqlfs_proc_mkdir(sqlfs, testfilename, 0777);
+    sleep(1);
+    assert(sqlfs_is_dir(sqlfs, testfilename));
+    testfilename = "/mkdir-with-sleep1";
+    sqlfs_proc_mkdir(sqlfs, testfilename, 0777);
+    sleep(1);
+    assert(sqlfs_is_dir(sqlfs, testfilename));
+    printf("passed\n");
+
+    printf("Testing mkdir without sleep...");
+    testfilename = "/mkdir-without-sleep0";
+    sqlfs_proc_mkdir(sqlfs, testfilename, 0777);
+    assert(sqlfs_is_dir(sqlfs, testfilename));
+    printf("passed\n");
+
+    printf("Testing whether mkdir does not make nested dirs...");
+    testfilename = "/a/b/c/d/e/f/g";
+    sqlfs_proc_mkdir(sqlfs, testfilename, 0777);
+    assert(!sqlfs_is_dir(sqlfs, testfilename));
+    printf("passed\n");
+
+    printf("Testing mkdir to make nested dirs one at a time...");
+    sqlfs_proc_mkdir(sqlfs, "/test", 0777);
+    assert(sqlfs_is_dir(sqlfs, "/test"));
+    sqlfs_proc_mkdir(sqlfs, "/test/1", 0777);
+    assert(sqlfs_is_dir(sqlfs, "/test/1"));
+    sqlfs_proc_mkdir(sqlfs, "/test/1/2", 0777);
+    assert(sqlfs_is_dir(sqlfs, "/test/1/2"));
+    printf("passed\n");
+
+    printf("Testing rmdir...");
+    testfilename = "/mkdir-to-rmdir";
+    sqlfs_proc_mkdir(sqlfs, testfilename, 0777);
+    assert(sqlfs_is_dir(sqlfs, testfilename));
+    sqlfs_proc_rmdir(sqlfs, testfilename);
+    assert(!sqlfs_is_dir(sqlfs, testfilename));
+    printf("passed\n");
+
+    printf("Testing creating a file with a small string...", buf, data);
+    fi.flags |= ~0;
+    sqlfs_proc_mkdir(sqlfs, "/bufdir", 0777);
+    sqlfs_proc_write(sqlfs, "/bufdir/file", data, strlen(data), 0, &fi);
+    assert(!sqlfs_is_dir(sqlfs, "/bufdir/file"));
+    i = sqlfs_proc_read(sqlfs, "/bufdir/file", buf, sizeof(buf), 0, &fi);
     buf[i] = 0;
     assert(!strcmp(buf, data));
+    printf("passed\n");
 
-    sqlfs_proc_write(sqlfs, "/app/data/file", data, strlen(data), 0, &fi);
-    sqlfs_proc_write(sqlfs, "/big/a/b/c/file", data2, 32000, 0, &fi);
+#define TESTSIZE 1000000
+    printf("Testing writing %d bytes of data...", TESTSIZE);
+    testfilename = "/randomdata";
+    char randombuf[TESTSIZE];
+    char randomdata[TESTSIZE];
+    for (i=0; i<TESTSIZE; ++i)
+        randomdata[i] = (i % 90) + 32;
+    randomdata[TESTSIZE-1] = 0;
+    sqlfs_proc_write(sqlfs, testfilename, randomdata, strlen(randomdata), 0, &fi);
+    sleep(1);
+    i = sqlfs_proc_read(sqlfs, testfilename, randombuf, sizeof(randombuf), 0, &fi);
+    randombuf[i] = 0;
+    assert(!strcmp(randombuf, randomdata));
+    printf("passed\n");
 
-    i = sqlfs_proc_read(sqlfs, "/big/a/b/c/file", buf, sizeof(buf), 400, &fi);
-    assert(buf[97] == '2');
+    printf("Testing reading while requesting more bytes than will fit in the buffer...");
+    i = sqlfs_proc_read(sqlfs, testfilename, buf, sizeof(buf), sizeof(buf)*2, &fi);
+    assert(i==sizeof(buf));
+    printf("passed\n");
+
+    printf("Testing reading a byte with offset 10000 times...");
+    int y, readloc;
+    for(y=0; y<10000; y++)
+    {
+        readloc = (float)rand() / RAND_MAX * (TESTSIZE-1);
+        i = sqlfs_proc_read(sqlfs, testfilename, buf, 1, readloc, &fi);
+        assert(i == 1);
+        assert(buf[0] == (readloc % 90) + 32);
+    }
+    printf("passed\n");
+    printf("Closing database...");
     sqlfs_close(sqlfs);
+    printf("done\n");
     return 0;
 }
 

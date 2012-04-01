@@ -26,4 +26,4 @@ tests/fsx
 tests/test
 tests/test.db
 tests/test_key
-tests/test_fuse
+tests/test_key.db

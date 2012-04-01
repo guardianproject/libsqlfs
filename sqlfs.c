@@ -3154,7 +3154,7 @@ static void * sqlfs_t_init(const char *db_file, const char *key, int nKey)
         return 0;
     }
 
-#ifdef HAVE_SQLCIPHER
+#ifdef HAVE_LIBSQLCIPHER
     if( nKey && key )
     {
         r = sqlite3_key(sql_fs->db, key, nKey);
@@ -3210,7 +3210,7 @@ int sqlfs_open(const char *db_file, sqlfs_t **sqlfs)
     return 1;
 }
 
-#ifdef HAVE_SQLCIPHER
+#ifdef HAVE_LIBSQLCIPHER
 int sqlfs_open_key(const char *db_file, const char *key, int nKey, sqlfs_t **sqlfs)
 {
     if (db_file == 0)

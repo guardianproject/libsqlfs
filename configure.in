@@ -36,27 +36,22 @@ AC_ARG_WITH([sqlcipher],
             [AS_HELP_STRING([--with-sqlcipher], [use SQLCipher library for SQLite])],
             [],
             [with_sqlcipher=check])
-SQLCIPHER=
-AS_IF([test "x$with_sqlcipher" != xno],
-	        [AC_CHECK_LIB([sqlcipher], [sqlite3_key],
-             [AC_SUBST([SQLITE], ["-lsqlcipher"])
-               AC_DEFINE([HAVE_SQLCIPHER], [1],
-                         [Define if you have sqlcipher])
-               HAVE_SQLCIPHER=1
-	       LIBS="$LIBS -lpthread"
-              ],
-             [if test "x$with_sqlcipher" != xcheck; then
-                 AC_MSG_FAILURE(
-                   [--with-sqlcipher was given but test failed])
-               fi
-             ])])
-AM_CONDITIONAL(WITH_SQLCIPHER, [test "$HAVE_SQLCIPHER" = "1"])
+AS_IF([test "$with_sqlcipher" != "no"],
+          [AC_CHECK_LIB([sqlcipher], [sqlite3_key],
+               [if test "$with_sqlcipher" != "check"; then
+                   AC_MSG_FAILURE([--with-sqlcipher was given but test failed])
+                fi]
+                    AC_DEFINE([HAVE_LIBSQLCIPHER], [1], [Define if you have SQLCipher])
+                    with_sqlcipher=yes,
+                ,
+                [-lpthread])])
 
-AC_CHECK_LIB(sqlite3, sqlite3_open, [with_sqlite=yes])
-AM_CONDITIONAL(SQLITE, test x$with_sqlite = xyes)
+AM_CONDITIONAL(WITH_SQLCIPHER, [test "$with_sqlcipher" = "yes"])
+AC_CHECK_LIB(sqlite3, sqlite3_open, [with_sqlite=yes], , [-lpthread])
 
 if test "$with_sqlcipher" = "yes"; then
     echo "Using SQLCipher"
+    AC_SUBST([SQLITE], ["-lsqlcipher"])
 elif test "$with_sqlite" = "yes"; then
     echo "Using SQLite"
     AC_SUBST([SQLITE], ["-lsqlite3"])
@@ -78,7 +73,7 @@ AS_IF([test "x$with_fuse" != xno],
              [AC_SUBST([LIBFUSE], ["-lfuse"])
                AC_DEFINE([HAVE_LIBFUSE], [1],
                          [Define if you have fuse])
-               HAVE_LIBFUSE=1
+               with_fuse=yes
 	       CFLAGS="$CFLAGS -D_FILE_OFFSET_BITS=64 -D_REENTRANT -DFUSE_USE_VERSION=25"
 	       LIBS="$LIBS -lpthread"
               ],
@@ -87,7 +82,7 @@ AS_IF([test "x$with_fuse" != xno],
                    [--with-fuse was given but test failed])
                fi
              ])])
-AM_CONDITIONAL(WITH_LIBFUSE, [test "$HAVE_LIBFUSE" = "1"])
+AM_CONDITIONAL(WITH_LIBFUSE, [test "$with_fuse" = "yes"])
 
 
 AC_CONFIG_FILES(Makefile tests/Makefile libsqlfs.pc)

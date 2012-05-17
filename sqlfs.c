@@ -2273,11 +2273,14 @@ int sqlfs_proc_rename(sqlfs_t *sqlfs, const char *from, const char *to)
             result = -EISDIR;
         }
     }
+    /* from and to must either be both files or both directories */
     if ((result == 0) && (key_is_dir(get_sqlfs(sqlfs), from) == 1))
     {
         if (key_is_dir(get_sqlfs(sqlfs), to) == 0)
         {
-
+            /* TODO support renaming directories.  That will entail
+             * crawling thru all of the keys, and also renaming any
+             * files that are in this directory */
             result = -ENOTDIR;
         }
     }

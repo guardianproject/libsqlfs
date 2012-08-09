@@ -2537,7 +2537,7 @@ int sqlfs_proc_create(sqlfs_t *sqlfs, const char *path, mode_t mode, struct fuse
     r = get_attr(get_sqlfs(sqlfs), path, &attr);
     if (r == SQLITE_OK) /* already exists */
     {
-        if (fi->flags & (O_CREAT | O_EXCL))
+        if ( (fi->flags & O_EXCL) && (fi->flags & O_CREAT) )
         {
 
             result = -EEXIST;
@@ -2603,7 +2603,7 @@ int sqlfs_proc_open(sqlfs_t *sqlfs, const char *path, struct fuse_file_info *fi)
     r = get_attr(get_sqlfs(sqlfs), path, &attr);
     if (r == SQLITE_OK) /* already exists */
     {
-        if (fi->flags & (O_CREAT | O_EXCL))
+        if ( (fi->flags & O_EXCL) && (fi->flags & O_CREAT) )
         {
 
             result = -EEXIST;

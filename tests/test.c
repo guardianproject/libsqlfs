@@ -48,6 +48,7 @@ int main(int argc, char *argv[])
     char *testfilename = "";
     char buf[200];
     struct stat sb;
+    struct fuse_file_info ffi;
 
     struct fuse_file_info fi = { 0 };
     int i, rc;

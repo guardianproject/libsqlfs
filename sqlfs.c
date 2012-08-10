@@ -2580,6 +2580,7 @@ int sqlfs_proc_open(sqlfs_t *sqlfs, const char *path, struct fuse_file_info *fi)
 {
     int r, result = 0;
     key_attr attr = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    key_value value = { 0, 0, 0 };
 
     if (fi->direct_io)
         return  -EACCES;
@@ -2620,6 +2621,23 @@ int sqlfs_proc_open(sqlfs_t *sqlfs, const char *path, struct fuse_file_info *fi)
         /* does not exist */
         if ((fi->flags & O_CREAT) == 0)
             result = - ENOENT ;
+
+    /* truncate file if called for */
+    if ( (fi->flags & O_TRUNC) && (fi->flags & (O_WRONLY | O_RDWR)) ) {
+        r = sqlfs_proc_truncate(sqlfs, path, 0);
+        if (r == SQLITE_BUSY)
+            result = -EBUSY;
+        else if (r != SQLITE_OK)
+            result = -EIO;
+        /* we need to refresh the attr struct because we've
+         * invalidated the old one by truncating */
+        r = get_attr(get_sqlfs(sqlfs), path, &attr);
+        if (r == SQLITE_BUSY)
+            result = -EBUSY;
+        else if (r != SQLITE_OK)
+            result = -EIO;
+    }
+
     if ((result == 0) && (fi->flags & O_CREAT))
     {
         attr.mode = get_sqlfs(sqlfs)->default_mode; /* to use some kind of default */

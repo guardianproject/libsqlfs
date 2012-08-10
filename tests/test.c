@@ -47,6 +47,7 @@ int main(int argc, char *argv[])
     char *data = "this is a string";
     char *testfilename = "";
     char buf[200];
+    struct stat sb;
 
     struct fuse_file_info fi = { 0 };
     int i, rc;
@@ -145,6 +146,27 @@ int main(int argc, char *argv[])
         assert(buf[0] == (readloc % 90) + 32);
     }
     printf("passed\n");
+
+    printf("Testing truncating...");
+    sqlfs_proc_getattr(sqlfs, testfilename, &sb);
+    assert(sb.st_size == TESTSIZE);
+    sqlfs_proc_truncate(sqlfs, testfilename, 0);
+    sqlfs_proc_getattr(sqlfs, testfilename, &sb);
+    assert(sb.st_size == 0);
+    printf("passed\n");
+
+    printf("Testing opening existing file truncation...");
+    sqlfs_proc_write(sqlfs, testfilename, randomdata, TESTSIZE, 0, &fi);
+    sqlfs_proc_getattr(sqlfs, testfilename, &sb);
+    assert(sb.st_size == TESTSIZE);
+    ffi.flags = O_WRONLY | O_CREAT | O_TRUNC;
+    ffi.direct_io = 0;
+    rc = sqlfs_proc_open(sqlfs, testfilename, &ffi);
+    assert(rc == 0);
+    sqlfs_proc_getattr(sqlfs, testfilename, &sb);
+    assert(sb.st_size == 0);
+    printf("passed\n");
+
     printf("Closing database...");
     sqlfs_close(sqlfs);
     printf("done\n");

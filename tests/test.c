@@ -123,9 +123,9 @@ int main(int argc, char *argv[])
     for (i=0; i<TESTSIZE; ++i)
         randomdata[i] = (i % 90) + 32;
     randomdata[TESTSIZE-1] = 0;
-    sqlfs_proc_write(sqlfs, testfilename, randomdata, strlen(randomdata), 0, &fi);
+    sqlfs_proc_write(sqlfs, testfilename, randomdata, TESTSIZE, 0, &fi);
     sleep(1);
-    i = sqlfs_proc_read(sqlfs, testfilename, randombuf, sizeof(randombuf), 0, &fi);
+    i = sqlfs_proc_read(sqlfs, testfilename, randombuf, TESTSIZE, 0, &fi);
     randombuf[i] = 0;
     assert(!strcmp(randombuf, randomdata));
     printf("passed\n");

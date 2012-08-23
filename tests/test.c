@@ -168,6 +168,29 @@ int main(int argc, char *argv[])
     assert(sb.st_size == 0);
     printf("passed\n");
 
+    printf("Testing write/seek/write...");
+    testfilename = "/skipwrite";
+    const int skip_offset = 100;
+    const char skip1[25] = "it was the best of times";
+    const int sz_skip1 = strlen(skip1);
+    rc = sqlfs_proc_write(sqlfs, testfilename, skip1, sz_skip1, 0, &fi);
+    assert(rc);
+    const char skip2[26] = "it was the worst of times";
+    const int sz_skip2 = strlen(skip2);
+    rc = sqlfs_proc_write(sqlfs, testfilename, skip2, sz_skip2, skip_offset, &fi);
+    assert(rc);
+    sqlfs_proc_getattr(sqlfs, testfilename, &sb);
+    assert(sb.st_size == (skip_offset+sz_skip2));
+    i = sqlfs_proc_read(sqlfs, testfilename, buf, sz_skip1, 0, &fi);
+    assert(i == sz_skip1);
+    buf[sz_skip1] = 0;
+    assert(!strcmp(buf, skip1));
+    i = sqlfs_proc_read(sqlfs, testfilename, buf, sz_skip2, skip_offset, &fi);
+    assert(i == sz_skip2);
+    buf[sz_skip2] = 0;
+    assert(!strcmp(buf, skip2));
+    printf("passed\n");
+
     printf("Closing database...");
     sqlfs_close(sqlfs);
     printf("done\n");

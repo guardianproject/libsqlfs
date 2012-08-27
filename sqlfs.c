@@ -887,7 +887,6 @@ static int rename_key(sqlfs_t *sqlfs, const char *old, const char *new)
 
 }
 
-
 #undef INDEX
 #define INDEX 15
 
@@ -945,6 +944,7 @@ static int get_dir_children_num(sqlfs_t *sqlfs, const char *path)
                 break;
             }
         }
+        sqlite3_reset(stmt);
     }
     free(lpath);
 
@@ -2239,9 +2239,112 @@ int sqlfs_proc_symlink(sqlfs_t *sqlfs, const char *path, const char *to)
 
 }
 
+static int rename_dir_children(sqlfs_t *sqlfs, const char *old, const char *new)
+{
+    int i, r, result = 0;
+    const char *tail;
+    const char *child_path, *child_filename;
+    static const char *cmd = "select key, mode from meta_data where key glob :pattern; ";
+    char tmp[PATH_MAX];
+    char *lpath, *rpath;
+    sqlite3_stmt *stmt;
+    BEGIN
+    CHECK_PARENT_PATH(old)
+    CHECK_DIR_READ(old)
+
+    if ((i = key_is_dir(get_sqlfs(sqlfs), old)), !i)
+    {
+        COMPLETE(1)
+        return -ENOTDIR;
+    }
+    else if (i == 2)
+    {
+        COMPLETE(1)
+        return -EBUSY;
+    }
+
+    lpath = strdup(old);
+    remove_tail_slash(lpath);
+    rpath = strdup(new);
+    remove_tail_slash(rpath);
+    snprintf(tmp, sizeof(tmp), "%s/*", lpath);
+
+    SQLITE3_PREPARE(get_sqlfs(sqlfs)->db, cmd, -1, &stmt,  &tail);
+    if (r != SQLITE_OK)
+    {
+        show_msg(stderr, "%s\n", sqlite3_errmsg(get_sqlfs(sqlfs)->db));
+        result = -EACCES;
+    }
+
+    if (result == 0)
+    {
+        sqlite3_bind_text(stmt, 1, tmp, -1, SQLITE_STATIC);
+        while (1)
+        {
+            r = sql_step(stmt);
+            if (r == SQLITE_ROW)
+            {
+                child_path = sqlite3_column_text(stmt, 0);
+                if (!strcmp(child_path, lpath))
+                    continue;
+                child_filename = child_path + strlen(lpath) + 1;
+                if (*child_filename == 0) /* special case when dir the root directory */
+                    continue;
+
+                /*printf("\n\tfound: %s, %s\n", child_path, child_filename);*/
+
+                char new_path[PATH_MAX];
+                strncpy(&new_path, rpath, PATH_MAX);
+                strncat(&new_path, "/", 1);
+                strncat(&new_path, child_filename, PATH_MAX);
+
+                /*printf("\tnew path: %s\n", new_path);*/
+
+                if ((i = key_exists(get_sqlfs(sqlfs), new_path, 0)), (i == 1))
+                {
+                    r = remove_key(get_sqlfs(sqlfs), new_path);
+                    if (r != SQLITE_OK)
+                    {
+                        result = -EIO;
+                        if (r == SQLITE_BUSY)
+                            result = -EBUSY;
+                    }
+                }
+                else if (i == 2)
+                    result = -EBUSY;
+
+                if (result == 0)
+                {
+                    r = rename_key(get_sqlfs(sqlfs), child_path, new_path);
+                    if (r != SQLITE_OK)
+                    {
+                        result = -EIO;
+                        if (r == SQLITE_BUSY)
+                            result = -EBUSY;
+                    }
+                }
+            }
+            else if (r == SQLITE_DONE)
+                break;
+            else if (r == SQLITE_BUSY)
+                result = -EBUSY;
+            else
+            {
+                show_msg(stderr, "%s\n", sqlite3_errmsg(get_sqlfs(sqlfs)->db));
+                result = -EACCES;
+                break;
+            }
+        }
+        sqlite3_reset(stmt);
+    }
+    COMPLETE(1)
+    free(lpath);
+    free(rpath);
+    return result;
+}
+
 int sqlfs_proc_rename(sqlfs_t *sqlfs, const char *from, const char *to)
 {
-
     int i, r = SQLITE_OK, result = 0;
     BEGIN
     CHECK_PARENT_WRITE(from)
@@ -2262,27 +2365,27 @@ int sqlfs_proc_rename(sqlfs_t *sqlfs, const char *from, const char *to)
 
     if (key_is_dir(get_sqlfs(sqlfs), to) == 1)
     {
-        if (get_dir_children_num(get_sqlfs(sqlfs), to) > 0)
-        {
-
-            result =  -ENOTEMPTY;
-        }
         if (!key_is_dir(get_sqlfs(sqlfs), from))
         {
-
             result = -EISDIR;
         }
     }
-    /* from and to must either be both files or both directories */
+    /* "'from' can specify a directory.  In this case, 'to' must either not exist,
+     * or it must specify an empty directory" - (man 2 rename.)
+     */
     if ((result == 0) && (key_is_dir(get_sqlfs(sqlfs), from) == 1))
     {
-        if (key_is_dir(get_sqlfs(sqlfs), to) == 0)
+        if (key_exists(get_sqlfs(sqlfs), to, 0))
         {
-            /* TODO support renaming directories.  That will entail
-             * crawling thru all of the keys, and also renaming any
-             * files that are in this directory */
-            result = -ENOTDIR;
+            if (!key_is_dir(get_sqlfs(sqlfs), to))
+            {
+                result = -ENOTDIR;
+            }
+            else if (get_dir_children_num(get_sqlfs(sqlfs), to) >= 0)
+                result = -ENOTEMPTY;
         }
+        if (result == 0)
+            result = rename_dir_children(get_sqlfs(sqlfs), from, to);
     }
 
     if ((i = key_exists(get_sqlfs(sqlfs), to, 0)), (i == 1))

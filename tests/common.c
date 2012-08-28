@@ -256,16 +256,20 @@ void test_write_seek_write(sqlfs_t *sqlfs)
 
 void run_standard_tests(sqlfs_t* sqlfs)
 {
+    int size;
+
     test_mkdir_with_sleep(sqlfs);
     test_mkdir_without_sleep(sqlfs);
     test_mkdir_to_make_nested_dirs(sqlfs);
     test_rmdir(sqlfs);
     test_create_file_with_small_string(sqlfs);
-#define TESTSIZE 1000
-    test_write_n_bytes(sqlfs, TESTSIZE);
-    test_read_bigger_than_buffer(sqlfs);
-    test_read_byte_with_offset(sqlfs, TESTSIZE);
-    test_truncate(sqlfs, TESTSIZE);
-    test_truncate_existing_file(sqlfs, TESTSIZE);
     test_write_seek_write(sqlfs);
+    test_read_bigger_than_buffer(sqlfs);
+
+    for (size=10; size < 1000001; size *= 10) {
+        test_write_n_bytes(sqlfs, size);
+        test_read_byte_with_offset(sqlfs, size);
+        test_truncate(sqlfs, size);
+        test_truncate_existing_file(sqlfs, size);
+    }
 }

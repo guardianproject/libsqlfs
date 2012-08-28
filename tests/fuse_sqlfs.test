@@ -1,0 +1,37 @@
+## -*- sh -*-
+## example.test
+#
+# more info here:
+#  http://sources.redhat.com/autobook/autobook/autobook_98.html
+
+# Common definitions
+if test -z "$srcdir"; then
+    srcdir=`echo "$0" | sed 's,[^/]*$,,'`
+    test "$srcdir" = "$0" && srcdir=.
+    test -z "$srcdir" && srcdir=.
+    test "${V+set}" != set && V=1
+fi
+. $srcdir/defs
+
+echo -n "Checking if fuse_sqlfs is executable..."
+if [ -x "$fuse_sqlfs" ]; then
+    echo "yes"
+else
+    echo "no"
+    echo "'$fuse_sqlfs' is not executable!" >&2
+    exit 1
+fi
+
+
+echo -n "Checking if fuse_sqlfs is runnable..."
+cat <<\EOF > ok
+fuse: missing mountpoint parameter
+EOF
+$fuse_sqlfs  2> err | tee -i out >&2
+if ${CMP} -s err ok; then
+    echo "yes"
+else
+    echo "no"
+    echo "'$fuse_sqlfs' is not runnable!" >&2
+    exit 1
+fi

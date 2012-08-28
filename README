@@ -227,7 +227,25 @@ level goes above 0 and only ended when the level falls to zero.
 
 For a sample application showing the usage of libsqlfs, see the test
 program test.c in the test directory.
-    
+
+Tests
+=====
+
+There is an included test suite in the tests/ subfolder.  They are a
+combination of C programs and bash scripts.  There are a number of ways to run
+the tests.  Here is to run them all:
+
+ make check
+
+If you want to see all of the messages, turn on verbose mode:
+
+ make check V=1
+
+You can also select which tests you want to run:
+
+ make check TESTS=fuse_sqlfs.test
+
+
 Supported Platforms
 ===================
 

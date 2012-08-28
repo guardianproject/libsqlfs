@@ -1,3 +1,0 @@
-
-gcc  -g -O0  -DFUSE=1 -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 -D_REENTRANT -DFUSE_USE_VERSION=25 -I/usr/local/include -I.. ../sqlfs.c test_fuse.c /usr/local/lib/libsqlite3.a /usr/local/lib/libfuse.a -o test_fuse -lpthread
-

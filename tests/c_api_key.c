@@ -43,7 +43,7 @@ int exists(char *filename)
 
 int main(int argc, char *argv[])
 {
-    char *database_filename = "test_key.db";
+    char *database_filename = "c_api_key.db";
     char *database_password = "mytestpassword";
     char *data = "this is a string";
     char *testfilename = "";

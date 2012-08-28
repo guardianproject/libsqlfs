@@ -1,0 +1,15 @@
+## -*- sh -*-
+## template for running a test C program
+
+# Common definitions
+if test -z "$srcdir"; then
+    srcdir=`echo "$0" | sed 's,[^/]*$,,'`
+    test "$srcdir" = "$0" && srcdir=.
+    test -z "$srcdir" && srcdir=.
+    test "${V+set}" != set && V=1
+fi
+. $srcdir/defs
+
+test="$testdir/$testname"
+echo "Running $test"
+"$test" "$testsubdir/$testname.db"

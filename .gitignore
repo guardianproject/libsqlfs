@@ -24,7 +24,7 @@ libsqlfs.pc
 *.lo
 tests/.tests
 tests/fsx
-tests/test
-tests/test.db
-tests/test_key
-tests/test_key.db
+tests/c_api
+tests/c_api.db
+tests/c_api_key
+tests/c_api_key.db

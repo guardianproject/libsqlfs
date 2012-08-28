@@ -43,7 +43,7 @@ int exists(char *filename)
 
 int main(int argc, char *argv[])
 {
-    char *database_filename = "test.db";
+    char *database_filename = "c_api.db";
     char *data = "this is a string";
     char *testfilename = "";
     char buf[200];

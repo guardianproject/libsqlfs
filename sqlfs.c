@@ -187,18 +187,15 @@ static void show_msg(FILE *f, char *fmt, ...)
 
 void clean_attr(key_attr *attr)
 {
-    if (attr->path)
-        free(attr->path);
-    if (attr->type)
-        free(attr->type);
+    free(attr->path);
+    free(attr->type);
     memset(attr, 0, sizeof(*attr));
 }
 
 
 void clean_value(key_value *value)
 {
-    if (value->data)
-        free(value->data);
+    free(value->data);
     memset(value, 0, sizeof(*value));
 }
 

@@ -2660,6 +2660,10 @@ int sqlfs_proc_create(sqlfs_t *sqlfs, const char *path, mode_t mode, struct fuse
     if (result == 0)
     {
         attr.mode = mode;
+#ifdef HAVE_LIBFUSE
+        attr.uid = geteuid();
+        attr.gid = getegid();
+#endif
         if (attr.path == 0)
         {
             attr.path = strdup(path);

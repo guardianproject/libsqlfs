@@ -5,11 +5,13 @@ EXTRA_DIST = defs
 
 TESTS_ENVIRONMENT = top_builddir=$(top_builddir)
 testsubdir = .tests
+bashtestsubdir = fuse_test
 
 # scripted tests
 check_SCRIPTS = \
 	c_api.test \
-	fuse_sqlfs.test
+	fuse_sqlfs.test \
+	directory_rename.test
 
 # compiled tests
 check_PROGRAMS = \
@@ -29,4 +31,5 @@ TESTS = $(check_SCRIPTS)
 
 distclean-local:
 	-rm -rf $(testsubdir)
+	-rm -rf $(bashtestsubdir)
 

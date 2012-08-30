@@ -1,0 +1,66 @@
+# vim:set filetype=sh:
+SQLFS="../fuse_sqlfs"
+MOUNT="./fuse_test"
+
+#########
+
+# normalize paths
+SQLFS=`readlink -f $SQLFS`
+MOUNT=`readlink -f $MOUNT`
+
+if [ ! -d $MOUNT ]
+then
+    mkdir $MOUNT;
+    if [ "$?" != 0 ]
+    then
+        exit $?;
+    fi
+fi
+
+if [ ! -f $SQLFS ]
+then
+    echo "sqlfs fuse binary '$SQLFS' not found" && exit 1;
+fi
+
+# mount sqlfs container if not already mounted
+ps auxf | grep $MOUNT | grep -v grep &> /dev/null
+if [ "$?" != 0 ]
+then
+    $SQLFS $MOUNT
+
+    if [ "$?" != 0 ]
+    then
+        echo "failed to mount sqlfs container" && exit 1;
+    fi
+fi
+
+if [ ! -w $MOUNT ]
+then
+    echo "no write permissions to sqlfs container" && exit 1;
+fi
+
+if [ ! -r $MOUNT ]
+then
+    echo "no read permissions to sqlfs container" && exit 1;
+fi
+
+E_ASSERT_FAILED=99
+
+assert()
+{
+  if [ ! $@ ]
+  then
+    echo "failed:  \"$@\" at $(caller)"
+    exit $E_ASSERT_FAILED
+  fi
+}
+
+assertEquals()
+{
+  if [ "$1" != "$2" ]
+  then
+    echo "failed:  \"$1\" != \"$2\" at $(caller)"
+    exit $E_ASSERT_FAILED
+  fi
+}
+cd $MOUNT

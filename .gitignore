@@ -28,3 +28,4 @@ tests/c_api
 tests/c_api.db
 tests/c_api_key
 tests/c_api_key.db
+tests/fuse_test

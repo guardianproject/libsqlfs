@@ -1,0 +1,34 @@
+#!/bin/bash
+
+source test_lib
+
+d="rename-test"
+if [ -d $d ]; then
+    rm -rf $d
+    fi
+
+mkdir $d
+cd $d
+
+mkdir -p "rename-me/dir1/dir2"
+
+echo "this is a" > rename-me/a
+echo "this is b" > rename-me/dir1/b
+echo "this is c" > rename-me/dir1/dir2/c
+
+assert -d rename-me
+
+mv rename-me/ renamed/
+
+assert ! -d rename-me
+assert -d renamed
+assert -d renamed/dir1
+assert -d renamed/dir1/dir2
+
+assert -f renamed/dir1/dir2/c
+assert -f renamed/dir1/b
+assert -f renamed/a
+
+assertEquals "`cat renamed/a`" "this is a"
+assertEquals "`cat renamed/dir1/b`" "this is b"
+assertEquals "`cat renamed/dir1/dir2/c`" "this is c"

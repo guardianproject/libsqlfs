@@ -67,8 +67,12 @@ created by
 #include <pthread.h>
 #include <time.h>
 #include "sqlfs.h"
-#include "sqlite3.h"
 
+#ifdef HAVE_LIBSQLCIPHER
+# include "sqlcipher/sqlite3.h"
+#else
+# include "sqlite3.h"
+#endif
 
 
 #define INDEX 0

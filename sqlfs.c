@@ -903,7 +903,6 @@ static int get_dir_children_num(sqlfs_t *sqlfs, const char *path)
     char *lpath = 0;
     static const char *cmd = "select key from meta_data where key glob :pattern; ";
     char tmp[PATH_MAX];
-    struct stat st;
     sqlite3_stmt *stmt;
 
     if ((i = key_is_dir(sqlfs, path)), (i == 0))
@@ -1056,7 +1055,7 @@ static int get_parent_path(const char *path, char buf[PATH_MAX])
 static int get_permission_data(sqlfs_t *sqlfs, const char *key, gid_t *gid, uid_t *uid, mode_t *mode)
 {
 
-    int i, r;
+    int r;
 
     const char *tail;
     sqlite3_stmt *stmt;
@@ -1101,7 +1100,7 @@ static int get_permission_data(sqlfs_t *sqlfs, const char *key, gid_t *gid, uid_
 
 static int get_parent_permission_data(sqlfs_t *sqlfs, const char *key, gid_t *gid, uid_t *uid, mode_t *mode)
 {
-    char tmp[PATH_MAX], *s;
+    char tmp[PATH_MAX];
     int r;
     r = get_parent_path(key, tmp);
     if (r == SQLITE_OK)
@@ -1117,7 +1116,7 @@ static int get_parent_permission_data(sqlfs_t *sqlfs, const char *key, gid_t *gi
 
 static int get_attr(sqlfs_t *sqlfs, const char *key, key_attr *attr)
 {
-    int i, r;
+    int r;
 
     const char *tail;
     sqlite3_stmt *stmt;
@@ -1174,7 +1173,7 @@ static int get_attr(sqlfs_t *sqlfs, const char *key, key_attr *attr)
 
 static int set_attr(sqlfs_t *sqlfs, const char *key, const key_attr *attr)
 {
-    int i, r;
+    int r;
     const char *tail;
     sqlite3_stmt *stmt;
     int mode = attr->mode;
@@ -1288,7 +1287,7 @@ static int key_set_type(sqlfs_t *sqlfs, const char *key, const char *type)
 
 static int get_value_block(sqlfs_t *sqlfs, const char *key, char *data, int block_no, int *size)
 {
-    int i, r;
+    int r;
     const char *tail;
     sqlite3_stmt *stmt;
     static const char *cmd = "select data_block from value_data where key = :key and block_no = :block_no;";
@@ -1330,14 +1329,14 @@ static int get_value_block(sqlfs_t *sqlfs, const char *key, char *data, int bloc
 
 static int set_value_block(sqlfs_t *sqlfs, const char *key, const char *data, int block_no, int size)
 {
-    int i, r;
+    int r;
     const char *tail;
     sqlite3_stmt *stmt;
 
     static const char *cmd = "update value_data set data_block = :data_block where key = :key and block_no = :block_no;";
     static const char *cmd1 = "insert or ignore into value_data (key, block_no) VALUES ( :key, :block_no ) ; ";
     static const char *cmd2 = "delete from value_data  where key = :key and block_no = :block_no;";
-    char *tmp;
+
     BEGIN
 
     if (size == 0)
@@ -1427,7 +1426,7 @@ static int set_value_block(sqlfs_t *sqlfs, const char *key, const char *data, in
 
 static int get_value(sqlfs_t *sqlfs, const char *key, key_value *value, size_t begin, size_t end)
 {
-    int i, r;
+    int r;
     const char *tail;
     sqlite3_stmt *stmt;
     static const char *cmd = "select size from meta_data where key = :key; ";
@@ -2378,7 +2377,7 @@ int sqlfs_proc_chown(sqlfs_t *sqlfs, const char *path, uid_t uid, gid_t gid)
 {
     int r, result = 0;
     key_attr attr = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } ;
-    int group_change_only = 0;
+
     BEGIN
 
     CHECK_PARENT_PATH(path)
@@ -2584,7 +2583,6 @@ int sqlfs_proc_open(sqlfs_t *sqlfs, const char *path, struct fuse_file_info *fi)
 {
     int r, result = 0;
     key_attr attr = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-    key_value value = { 0, 0, 0 };
 
     if (fi->direct_io)
         return  -EACCES;

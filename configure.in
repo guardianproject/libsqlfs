@@ -42,6 +42,7 @@ AS_IF([test "$with_sqlcipher" != "no"],
                    AC_MSG_FAILURE([--with-sqlcipher was given but test failed])
                 fi]
                     AC_DEFINE([HAVE_LIBSQLCIPHER], [1], [Define if you have SQLCipher])
+                    AC_DEFINE([SQLITE_HAS_CODEC], [1], [The crypto support is known as a codec])
                     with_sqlcipher=yes,
                 ,
                 [-lpthread])])

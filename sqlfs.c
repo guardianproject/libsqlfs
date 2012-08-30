@@ -1285,7 +1285,7 @@ static int key_set_type(sqlfs_t *sqlfs, const char *key, const char *type)
 #undef INDEX
 #define INDEX 21
 
-static int get_value_block(sqlfs_t *sqlfs, const char *key, char *data, int block_no, int *size)
+static int get_value_block(sqlfs_t *sqlfs, const char *key, char *data, int block_no, size_t *size)
 {
     int r;
     const char *tail;
@@ -1311,7 +1311,7 @@ static int get_value_block(sqlfs_t *sqlfs, const char *key, char *data, int bloc
     else
     {
         if (size)
-            *size = sqlite3_column_bytes(stmt, 0);
+          *size = (size_t) sqlite3_column_bytes(stmt, 0);
         memcpy(data, sqlite3_column_blob(stmt, 0), sqlite3_column_bytes(stmt, 0));
         r = SQLITE_OK;
 
@@ -1495,10 +1495,10 @@ static int get_value(sqlfs_t *sqlfs, const char *key, key_value *value, size_t b
 
 static int set_value(sqlfs_t *sqlfs, const char *key, const key_value *value, size_t begin, size_t end)
 {
-    int i, r;
+    int r;
     const char *tail;
     sqlite3_stmt *stmt;
-    size_t begin2, end2, length;
+    size_t begin2, end2, length, i;
     int block_no;
     static const char *cmd1 = "insert or ignore into meta_data (key) VALUES ( :key ) ; ";
     static const char *cmd2 = "update meta_data set size = :size where key =  :key  ; ";
@@ -1603,8 +1603,8 @@ static int set_value(sqlfs_t *sqlfs, const char *key, const key_value *value, si
 
 static int key_shorten_value(sqlfs_t *sqlfs, const char *key, size_t new_length)
 {
-    int r, i;
-    size_t l;
+    int r;
+    size_t l, i;
     int block_no;
     char *tmp;
     const char *tail;

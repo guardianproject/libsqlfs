@@ -1,4 +1,4 @@
-AC_INIT([libsqlfs], [1.1])
+AC_INIT([libsqlfs], [1.1], [guardian-dev@lists.mayfirst.org])
 AC_CONFIG_SRCDIR([sqlfs.c])
 
 AC_CANONICAL_HOST
@@ -50,11 +50,12 @@ AS_IF([test "$with_sqlcipher" != "no"],
 AM_CONDITIONAL(WITH_SQLCIPHER, [test "$with_sqlcipher" = "yes"])
 AC_CHECK_LIB(sqlite3, sqlite3_open, [with_sqlite=yes], , [-lpthread])
 
+report_log="$report_log\n database:"
 if test "$with_sqlcipher" = "yes"; then
-    echo "Using SQLCipher"
+   report_log="$report_log\tSQLCipher"
     AC_SUBST([SQLITE], ["-lsqlcipher"])
 elif test "$with_sqlite" = "yes"; then
-    echo "Using SQLite"
+    report_log="$report_log\tSQLite"
     AC_SUBST([SQLITE], ["-lsqlite3"])
 else
     echo "Error! SQLCipher or SQLite3 is required!"
@@ -84,9 +85,18 @@ AS_IF([test "x$with_fuse" != xno],
                fi
              ])])
 AM_CONDITIONAL(WITH_LIBFUSE, [test "$with_fuse" = "yes"])
-
+report_log="$report_log\n FUSE module:"
+if test "$with_fuse" = "yes"; then
+    report_log="${report_log}\tyes"
+else
+    report_log="${report_log}\tyes"
+fi
 
 AC_CONFIG_FILES(Makefile tests/Makefile libsqlfs.pc)
 
 AC_OUTPUT
 
+echo -e "\n$PACKAGE $VERSION build configuration:\n$report_log"
+echo -e " CFLAGS:\t$CFLAGS"
+echo -e " LDFLAGS:\t$LDFLAGS"
+echo -e "\n\n"

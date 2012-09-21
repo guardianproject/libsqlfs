@@ -13,6 +13,9 @@ AC_PROG_LIBTOOL
 
 AC_DEFINE(_GNU_SOURCE, 1)
 
+# always include debug symbols in compile, they're stripped at install
+CFLAGS="$CFLAGS -g"
+
 case $host in
 *darwin*)
         # to prevent this error:

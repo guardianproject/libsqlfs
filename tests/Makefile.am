@@ -10,9 +10,11 @@ bashtestsubdir = fuse_test
 # scripted tests
 check_SCRIPTS = \
 	c_api.test \
-	c_thread__api.test \
-	fuse_sqlfs.test \
-	directory_rename.test
+	c_thread_api.test
+
+# these scripts require root/fuse access to mount the filesystem before testing
+#	fuse_sqlfs.test \
+#	directory_rename.test
 
 # compiled tests
 check_PROGRAMS = \

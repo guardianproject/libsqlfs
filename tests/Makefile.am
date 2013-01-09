@@ -10,15 +10,18 @@ bashtestsubdir = fuse_test
 # scripted tests
 check_SCRIPTS = \
 	c_api.test \
+	c_thread__api.test \
 	fuse_sqlfs.test \
 	directory_rename.test
 
 # compiled tests
 check_PROGRAMS = \
 	c_api \
+	c_thread_api \
 	fsx
 
 c_api_SOURCES = c_api.c
+c_thread_api_SOURCES = c_thread_api.c
 fsx_SOURCES = fsx.c
 
 if WITH_SQLCIPHER

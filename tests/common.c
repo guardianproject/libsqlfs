@@ -224,6 +224,50 @@ void test_truncate_existing_file(sqlfs_t *sqlfs, int testsize)
     printf("passed\n");
 }
 
+void test_getattr_create_truncate_truncate_truncate(sqlfs_t *sqlfs)
+{
+    printf("Testing getattr create truncate truncate truncate...");
+    struct stat sb;
+    struct fuse_file_info fi = { 0 };
+    char basefile[PATH_MAX];
+    char goodfile[PATH_MAX];
+    char logfile[PATH_MAX];
+    randomfilename(basefile, PATH_MAX, "testfile-single");
+    randomfilename(goodfile, PATH_MAX, "testfile-single.fsxgood");
+    randomfilename(logfile, PATH_MAX, "testfile-single.fsxlog");
+
+    sqlfs_proc_getattr(sqlfs, basefile, &sb);
+    assert(errno == ENOENT);
+    sqlfs_proc_create(sqlfs, basefile, 0100644, &fi);
+    sqlfs_proc_getattr(sqlfs, basefile, &sb);
+    assert(sb.st_size == 0);
+
+    sqlfs_proc_getattr(sqlfs, goodfile, &sb);
+    assert(errno == ENOENT);
+    sqlfs_proc_create(sqlfs, goodfile, 0100644, &fi);
+    sqlfs_proc_getattr(sqlfs, goodfile, &sb);
+    assert(sb.st_size == 0);
+
+    sqlfs_proc_getattr(sqlfs, logfile, &sb);
+    assert(errno == ENOENT);
+    sqlfs_proc_create(sqlfs, logfile, 0100644, &fi);
+    sqlfs_proc_getattr(sqlfs, logfile, &sb);
+    assert(sb.st_size == 0);
+
+    sqlfs_proc_truncate(sqlfs, basefile, 0);
+    sqlfs_proc_getattr(sqlfs, basefile, &sb);
+    assert(sb.st_size == 0);
+
+    sqlfs_proc_truncate(sqlfs, basefile, 100000);
+    sqlfs_proc_getattr(sqlfs, basefile, &sb);
+    assert(sb.st_size == 100000);
+
+    sqlfs_proc_truncate(sqlfs, basefile, 0);
+    sqlfs_proc_getattr(sqlfs, basefile, &sb);
+    assert(sb.st_size == 0);
+    printf("passed\n");
+}
+
 void test_write_seek_write(sqlfs_t *sqlfs)
 {
     printf("Testing write/seek/write...");
@@ -258,6 +302,7 @@ void run_standard_tests(sqlfs_t* sqlfs)
 {
     int size;
 
+    test_getattr_create_truncate_truncate_truncate(sqlfs);
     test_mkdir_with_sleep(sqlfs);
     test_mkdir_without_sleep(sqlfs);
     test_mkdir_to_make_nested_dirs(sqlfs);

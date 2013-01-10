@@ -27,9 +27,10 @@ c_thread_api_SOURCES = c_thread_api.c
 fsx_SOURCES = fsx.c
 
 if WITH_SQLCIPHER
-check_SCRIPTS += c_api_key.test
-check_PROGRAMS += c_api_key
+check_SCRIPTS += c_api_key.test c_thread_api_key.test
+check_PROGRAMS += c_api_key c_thread_api_key
 c_api_key_SOURCES = c_api_key.c
+c_thread_api_key_SOURCES = c_thread_api_key.c
 endif
 
 TESTS = $(check_SCRIPTS)

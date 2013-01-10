@@ -152,7 +152,7 @@ int sqlfs_proc_listxattr(sqlfs_t *, const char *path, char *list, size_t size);
 int sqlfs_proc_removexattr(sqlfs_t *, const char *path, const char *name);
 
 #ifdef HAVE_LIBSQLCIPHER
-int sqlfs_open_key(const char *db_file, const char *key, int nKey, sqlfs_t **sqlfs);
+int sqlfs_open_key(const char *db_file, const char *key, sqlfs_t **sqlfs);
 #endif
 int sqlfs_open(const char *db_file, sqlfs_t **sqlfs);
 int sqlfs_close(sqlfs_t *);

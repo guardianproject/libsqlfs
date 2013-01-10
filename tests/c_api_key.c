@@ -37,21 +37,19 @@ int main(int argc, char *argv[])
     }
     printf("Creating %s...", database_filename);
     sqlfs_init(database_filename);
-    rc = sqlfs_open_key(database_filename, database_password, 
-                        strlen(database_password), &sqlfs);
+    rc = sqlfs_open_key(database_filename, database_password, &sqlfs);
     assert(rc);
     rc = sqlfs_close(sqlfs);
     assert(rc);
     printf("passed\n");
 
     printf("Opening database with wrong password...");
-    rc = sqlfs_open_key(argv[1], "fakesecret", 10, &sqlfs);
+    rc = sqlfs_open_key(argv[1], "fakesecret", &sqlfs);
     assert(!rc);
     printf("passed\n");
 
     printf("Opening database with correct password...");
-    rc = sqlfs_open_key(database_filename, database_password, 
-                        strlen(database_password), &sqlfs);
+    rc = sqlfs_open_key(database_filename, database_password, &sqlfs);
     assert(rc);
     printf("passed\n");
 

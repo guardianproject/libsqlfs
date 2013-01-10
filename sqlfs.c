@@ -104,10 +104,12 @@ static const int BLOCK_SIZE = 128 * 1024;
 static pthread_key_t sql_key;
 
 static char default_db_file[PATH_MAX] = { 0 };
+#define MAX_DB_KEY_LENGTH 64
+static char default_db_key[MAX_DB_KEY_LENGTH] = { 0 };
 
 static int max_inode = 0;
 
-static void * sqlfs_t_init(const char *, const char* , int);
+static void * sqlfs_t_init(const char *db_file, const char *db_key);
 static void sqlfs_t_finalize(void *arg);
 
 static void delay(int ms)
@@ -145,7 +147,7 @@ static __inline__ sqlfs_t *get_sqlfs(sqlfs_t *p)
     if (sqlfs)
         return sqlfs;
 
-    sqlfs =  (sqlfs_t*) sqlfs_t_init(default_db_file, 0, 0);
+    sqlfs = (sqlfs_t*) sqlfs_t_init(default_db_file, default_db_key);
     pthread_setspecific(sql_key, sqlfs);
     return sqlfs;
 }
@@ -3265,7 +3267,7 @@ static int create_db_table(sqlfs_t *sqlfs)
 
 
 
-static void * sqlfs_t_init(const char *db_file, const char *key, int nKey)
+static void * sqlfs_t_init(const char *db_file, const char *db_key)
 {
     int i, r;
     sqlfs_t *sql_fs = calloc(1, sizeof(*sql_fs));
@@ -3282,9 +3284,9 @@ static void * sqlfs_t_init(const char *db_file, const char *key, int nKey)
     }
 
 #ifdef HAVE_LIBSQLCIPHER
-    if( nKey && key )
+    if (db_key && strlen(db_key))
     {
-        r = sqlite3_key(sql_fs->db, key, nKey);
+        r = sqlite3_key(sql_fs->db, db_key, strlen(db_key));
         if (r != SQLITE_OK)
         {
             fprintf(stderr, "Opening the database with provided key failed.\n");
@@ -3331,18 +3333,18 @@ int sqlfs_open(const char *db_file, sqlfs_t **sqlfs)
 {
     if (db_file == 0)
         db_file = default_db_file;
-    *sqlfs = sqlfs_t_init(db_file, 0, 0);
+    *sqlfs = sqlfs_t_init(db_file, 0);
     if (!*sqlfs)
         return 0;
     return 1;
 }
 
 #ifdef HAVE_LIBSQLCIPHER
-int sqlfs_open_key(const char *db_file, const char *key, int nKey, sqlfs_t **sqlfs)
+int sqlfs_open_key(const char *db_file, const char *key, sqlfs_t **sqlfs)
 {
     if (db_file == 0)
         db_file = default_db_file;
-    *sqlfs = sqlfs_t_init(db_file, key, nKey);
+    *sqlfs = sqlfs_t_init(db_file, key);
     if (!*sqlfs)
         return 0;
     return 1;
@@ -3514,6 +3516,14 @@ int sqlfs_init(const char *db_file_name)
     pthread_key_create(&sql_key, sqlfs_t_finalize);
     return 0;
 }
+
+#ifdef HAVE_LIBSQLCIPHER
+int sqlfs_init_key(const char *db_file, const char *db_key)
+{
+    strncpy(default_db_key, db_key, MAX_DB_KEY_LENGTH);
+    return sqlfs_init(db_file);
+}
+#endif
 
 #ifdef HAVE_LIBFUSE
 

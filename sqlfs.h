@@ -94,6 +94,9 @@ extern "C" {
 #include "sqlfs_internal.h"
 
     int sqlfs_init(const char *);
+#ifdef HAVE_LIBSQLCIPHER
+    int sqlfs_init_key(const char *db_file_name, const char *key);
+#endif
 #ifdef HAVE_LIBFUSE
     int sqlfs_fuse_main(int argc, char **argv);
 #endif

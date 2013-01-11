@@ -517,7 +517,7 @@ static int key_is_dir(sqlfs_t *sqlfs, const char *key)
 
     else
     {
-        t = sqlite3_column_text(stmt, 0);
+        t = (const char *)sqlite3_column_text(stmt, 0);
 
         if (t && !strcmp(TYPE_DIR, t))
             result = 1;
@@ -951,7 +951,7 @@ static int get_dir_children_num(sqlfs_t *sqlfs, const char *path)
             r = sql_step(stmt);
             if (r == SQLITE_ROW)
             {
-                t = sqlite3_column_text(stmt, 0);
+                t = (const char *)sqlite3_column_text(stmt, 0);
                 t2 = t + strlen(tmp) - 1;
                 if (strchr(t2, '/'))
                     continue; /* grand child, etc. */
@@ -1169,9 +1169,9 @@ static int get_attr(sqlfs_t *sqlfs, const char *key, key_attr *attr)
     }
     else
     {
-        attr->path = make_str_copy(sqlite3_column_text(stmt, 0));
+        attr->path = make_str_copy((const char *)sqlite3_column_text(stmt, 0));
         assert(!strcmp(key, attr->path));
-        attr->type = make_str_copy(sqlite3_column_text(stmt, 1));
+        attr->type = make_str_copy((const char *)sqlite3_column_text(stmt, 1));
         attr->mode = (sqlite3_column_int(stmt, 2));
         attr->uid = (sqlite3_column_int(stmt, 3));
         attr->gid = (sqlite3_column_int(stmt, 4));
@@ -2048,7 +2048,7 @@ int sqlfs_proc_readdir(sqlfs_t *sqlfs, const char *path, void *buf, fuse_fill_di
             r = sql_step(stmt);
             if (r == SQLITE_ROW)
             {
-                t = sqlite3_column_text(stmt, 0);
+                t = (const char *)sqlite3_column_text(stmt, 0);
                 if (!strcmp(t, lpath))
                     continue;
                 t2 = t + strlen(lpath) + 1;
@@ -2311,7 +2311,7 @@ static int rename_dir_children(sqlfs_t *sqlfs, const char *old, const char *new)
             r = sql_step(stmt);
             if (r == SQLITE_ROW)
             {
-                child_path = sqlite3_column_text(stmt, 0);
+                child_path = (const char *)sqlite3_column_text(stmt, 0);
                 if (!strcmp(child_path, lpath))
                     continue;
                 child_filename = child_path + strlen(lpath) + 1;
@@ -3239,7 +3239,7 @@ int sqlfs_list_keys(sqlfs_t *sqlfs, const char *pattern, void *buf, fuse_fill_di
             r = sql_step(stmt);
             if (r == SQLITE_ROW)
             {
-                t = sqlite3_column_text(stmt, 0);
+                t = (const char *)sqlite3_column_text(stmt, 0);
                 if (filler(buf, t, NULL, 0))
                     break;
             }

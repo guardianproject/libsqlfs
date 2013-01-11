@@ -175,6 +175,19 @@ static __inline__ char *make_str_copy(const char *str)
     return strdup(str);
 }
 
+#ifdef __ANDROID__
+#include <android/log.h>
+#define LOG_TAG "libsqlfs"
+#define  LOGW(...)  __android_log_print(ANDROID_LOG_WARN, LOG_TAG, __VA_ARGS__)
+static void show_msg(FILE *f, char *fmt, ...)
+{
+    va_list ap;
+
+    va_start(ap, fmt);
+    __android_log_print(ANDROID_LOG_WARN, LOG_TAG, fmt, ap);
+    va_end(ap);
+}
+#else
 static void show_msg(FILE *f, char *fmt, ...)
 {
     va_list ap;
@@ -184,6 +197,7 @@ static void show_msg(FILE *f, char *fmt, ...)
     vfprintf(f, fmt, ap);
     va_end(ap);
 }
+#endif /* __ANDROID__ */
 
 
 

@@ -25,6 +25,7 @@ check_PROGRAMS = \
 c_api_SOURCES = c_api.c
 c_thread_api_SOURCES = c_thread_api.c
 fsx_SOURCES = fsx.c
+fsx_CFLAGS = -Wno-error=unused-result
 
 if WITH_SQLCIPHER
 check_SCRIPTS += c_api_key.test c_thread_api_key.test

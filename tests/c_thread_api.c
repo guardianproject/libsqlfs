@@ -25,8 +25,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 int main(int argc, char *argv[])
 {
     char *database_filename = "c_thread_api.db";
-    int rc;
-    sqlfs_t *sqlfs = 0;
 
     if(argc > 1)
       database_filename = argv[1];

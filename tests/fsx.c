@@ -48,6 +48,9 @@
 # include <time.h>
 # include <strings.h>
 #endif
+#ifdef __gnu_linux__
+# include <time.h>
+#endif
 #include <fcntl.h>
 #include <sys/mman.h>
 #ifndef MAP_FILE

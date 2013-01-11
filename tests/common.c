@@ -55,7 +55,7 @@ int create_test_file(sqlfs_t* sqlfs, char* filename, int size)
     for (i=0; i<size; ++i)
         randomdata[i] = (i % 90) + 32;
     randomdata[size-1] = '\0';
-    sqlfs_proc_write(sqlfs, filename, randomdata, size, 0, &fi);
+    return sqlfs_proc_write(sqlfs, filename, randomdata, size, 0, &fi);
 }
 
 void randomfilename(char* buf, int size, char* prefix)

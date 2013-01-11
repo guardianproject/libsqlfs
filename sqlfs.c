@@ -1452,7 +1452,7 @@ static int get_value(sqlfs_t *sqlfs, const char *key, key_value *value, size_t b
     const char *tail;
     sqlite3_stmt *stmt;
     static const char *cmd = "select size from meta_data where key = :key; ";
-    size_t size;
+    size_t size = 0;
     int block_no;
 
     clean_value(value);
@@ -1471,7 +1471,6 @@ static int get_value(sqlfs_t *sqlfs, const char *key, key_value *value, size_t b
     {
         if (r != SQLITE_DONE)
             show_msg(stderr, "%s\n", sqlite3_errmsg(get_sqlfs(sqlfs)->db));
-
     }
     else
     {
@@ -1494,7 +1493,6 @@ static int get_value(sqlfs_t *sqlfs, const char *key, key_value *value, size_t b
             begin = (block_no = (begin / BLOCK_SIZE)) * BLOCK_SIZE;
             for ( ; begin < end; begin += BLOCK_SIZE, block_no++)
             {
-
                 r = get_value_block(sqlfs, key, value->data + begin - value->offset, block_no, NULL);
                 if (r != SQLITE_OK)
                     break;

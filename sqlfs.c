@@ -2998,7 +2998,7 @@ int sqlfs_proc_fsync(sqlfs_t *sqlfs, const char *path, int isfdatasync, struct f
     return 0;
 }
 
-/* xattr operations are optional and can safely be left unimplemented */
+/* xattr operations are optional and can safely be left unimplemented
 int sqlfs_proc_setxattr(sqlfs_t *sqlfs, const char *path, const char *name, const char *value,
                         size_t size, int flags)
 {
@@ -3020,7 +3020,7 @@ int sqlfs_proc_removexattr(sqlfs_t *sqlfs, const char *path, const char *name)
 {
     return -ENOSYS;
 }
-
+*/
 
 int sqlfs_del_tree(sqlfs_t *sqlfs, const char *key)
 {
@@ -3484,6 +3484,7 @@ static int sqlfs_op_fsync(const char *path, int isfdatasync, struct fuse_file_in
 {
     return sqlfs_proc_fsync(0, path, isfdatasync, fi);
 }
+/* the xaddr functions are optional and can safely be left unimplemented
 static int sqlfs_op_setxattr(const char *path, const char *name, const char *value,
                              size_t size, int flags)
 {
@@ -3501,6 +3502,7 @@ static int sqlfs_op_removexattr(const char *path, const char *name)
 {
     return sqlfs_proc_removexattr(0, path, name);
 }
+*/
 
 static struct fuse_operations sqlfs_op;
 
@@ -3531,13 +3533,12 @@ int sqlfs_init(const char *db_file_name)
     sqlfs_op.statfs	= sqlfs_op_statfs;
     sqlfs_op.release	= sqlfs_op_release;
     sqlfs_op.fsync	= sqlfs_op_fsync;
-#if 0
-
+/* the xaddr functions are optional and can safely be left unimplemented
     sqlfs_op.setxattr	= sqlfs_op_setxattr;
     sqlfs_op.getxattr	= sqlfs_op_getxattr;
     sqlfs_op.listxattr	= sqlfs_op_listxattr;
     sqlfs_op.removexattr= sqlfs_op_removexattr;
-#endif
+*/
 #endif
 
     if (db_file_name)

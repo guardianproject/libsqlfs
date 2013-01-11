@@ -201,8 +201,19 @@ void clean_value(key_value *value)
     memset(value, 0, sizeof(*value));
 }
 
-/*static pthread_mutex_t transaction_lock = PTHREAD_MUTEX_INITIALIZER;
-*/
+
+/* There are a few different locking techniques in the code still, some
+ * commented out, and really only one in use: the sqlite 'begin exclusive'.
+ * There is a pthread mutex lock below that is quite large grained. Then in
+ * sqlfs_t_init, there is the sqlite3_busy_timeout(), which is there to help
+ * ensure that the call to create "/" if it doesn't exist doesn't fail.
+ *
+ * Originally, 'begin exclusive' was only used in LIBFUSE mode, and not in
+ * standalone library mode, where 'begin' was used.  But we found it too
+ * unreliable so we switched standalone mode to also use 'begin exclusive'.
+ */
+
+//static pthread_mutex_t transaction_lock = PTHREAD_MUTEX_INITIALIZER;
 #define TRANS_LOCK //pthread_mutex_lock(&transaction_lock);
 #define TRANS_UNLOCK //pthread_mutex_unlock(&transaction_lock);
 
@@ -213,12 +224,10 @@ void clean_value(key_value *value)
 static int begin_transaction(sqlfs_t *sqlfs)
 {
     int i;
-#ifdef HAVE_LIBFUSE
+    /* TODO use better locking techniques to provide more concurrency:
+     * http://www.sqlite.org/lockingv3.html
+     * http://www.sqlite.org/wal.html  */
     const char *cmd = "begin exclusive;";
-
-#else
-    const char *cmd = "begin;";
-#endif
 
     sqlite3_stmt *stmt;
     const char *tail;
@@ -1736,6 +1745,8 @@ static int check_parent_write(sqlfs_t *sqlfs, const char *path)
 //fprintf(stderr, "check directory write 1st %s %d uid %d gid %d\n",   ppath, result, get_sqlfs(sqlfs)->uid, get_sqlfs(sqlfs)->gid);//???
 
 #ifndef HAVE_LIBFUSE
+        /* libfuse seems to enforce that the parent directory before getting
+         * here, but without libfuse, we need to do it manually */
         if (result == -ENOENT)
         {
             result = check_parent_write(sqlfs, ppath);
@@ -3302,6 +3313,9 @@ static void * sqlfs_t_init(const char *db_file, const char *db_key)
     if (max_inode == 0)
         max_inode = get_current_max_inode(sql_fs);
 
+    /* When using the 'begin' sqlite3 locking mode, this busy timeout is
+     * necessary to make sure that the call to ensure_existence succeeds when
+     * the filesystem is under load. With 'begin exclusive' its not needed. */
     // TODO Investigate this busy_timeout function, it proved useful in preventing permanent EBUSY errors
     /*sqlite3_busy_timeout( sql_fs->db, 500); *//* default timeout 0.5 seconds */
     sqlite3_exec(sql_fs->db, "PRAGMA synchronous = OFF;", NULL, NULL, NULL);

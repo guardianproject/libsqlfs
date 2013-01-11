@@ -36,7 +36,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <errno.h>
 #include <utime.h>
 
+#ifdef HAVE_LIBSQLCIPHER
+#include "sqlcipher/sqlite3.h"
+#else
 #include "sqlite3.h"
+#endif
 
 #define TYPE_NULL "null"
 #define TYPE_DIR "dir"

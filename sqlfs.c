@@ -1728,19 +1728,19 @@ static int check_parent_access(sqlfs_t *sqlfs, const char *path)
 
     BEGIN
     r = get_parent_path(path, ppath);
-//fprintf(stderr, "%s #1 returns %d on %s\n", __func__, r, path);//???
+//show_msg(stderr, "%s #1 returns %d on %s\n", __func__, r, path);//???
     if (r == SQLITE_OK)
     {
         result = check_parent_access(sqlfs, ppath);
-//fprintf(stderr, "%s #2 returns %d on %s\n", __func__, result, path);//???
+//show_msg(stderr, "%s #2 returns %d on %s\n", __func__, result, path);//???
         if (result == 0)
             result = (sqlfs_proc_access(sqlfs, (ppath), X_OK));
-//fprintf(stderr, "%s #3 returns %d on %s %s\n", __func__, result, path, ppath);//???
+//show_msg(stderr, "%s #3 returns %d on %s %s\n", __func__, result, path, ppath);//???
     }
     /* else if no parent, we return 0 by default */
 
     COMPLETE(1)
-//fprintf(stderr, "%s returns %d on %s\n", __func__, result, path);//???
+//show_msg(stderr, "%s returns %d on %s\n", __func__, result, path);//???
     return result;
 }
 
@@ -1756,7 +1756,7 @@ static int check_parent_write(sqlfs_t *sqlfs, const char *path)
     if (r == SQLITE_OK)
     {
         result = (sqlfs_proc_access(sqlfs, (ppath), W_OK | X_OK));
-//fprintf(stderr, "check directory write 1st %s %d uid %d gid %d\n",   ppath, result, get_sqlfs(sqlfs)->uid, get_sqlfs(sqlfs)->gid);//???
+//show_msg(stderr, "check directory write 1st %s %d uid %d gid %d\n",   ppath, result, get_sqlfs(sqlfs)->uid, get_sqlfs(sqlfs)->gid);//???
 
 #ifndef HAVE_LIBFUSE
         /* libfuse seems to enforce that the parent directory before getting
@@ -1771,7 +1771,7 @@ static int check_parent_write(sqlfs_t *sqlfs, const char *path)
 #endif
     }
     COMPLETE(1)
-//fprintf(stderr, "check directory write %s %d\n",   ppath, result);//???
+//show_msg(stderr, "check directory write %s %d\n",   ppath, result);//???
     return result;
 }
 
@@ -1781,7 +1781,7 @@ static int check_parent_write(sqlfs_t *sqlfs, const char *path)
 #define CHECK_WRITE(p) result = (sqlfs_proc_access(sqlfs, (p), W_OK | F_OK));  if (result != 0) { COMPLETE(1); return result; }
 
 #define CHECK_DIR_WRITE(p) result = (sqlfs_proc_access(sqlfs, (p), W_OK | F_OK | X_OK));  if (result != 0) { COMPLETE(1); return result; }
-#define CHECK_DIR_READ(p) result = (sqlfs_proc_access(sqlfs, (p), R_OK | F_OK | X_OK));  if (result != 0) {fprintf(stderr, "dir read failed %d\n", result); COMPLETE(1); return result; }
+#define CHECK_DIR_READ(p) result = (sqlfs_proc_access(sqlfs, (p), R_OK | F_OK | X_OK));  if (result != 0) {show_msg(stderr, "dir read failed %d\n", result); COMPLETE(1); return result; }
 
 #define CHECK_PARENT_READ(p)  \
   { char ppath[PATH_MAX]; if (SQLITE_OK == get_parent_path((p), ppath))  {  result = (sqlfs_proc_access(sqlfs, (ppath), R_OK | X_OK));  if (result != 0) { COMPLETE(1); return result; }}}
@@ -1876,7 +1876,7 @@ int sqlfs_proc_access(sqlfs_t *sqlfs, const char *path, int mask)
             result = -EBUSY;
 
         COMPLETE(1)
-        //fprintf(stderr, "root access returns %d on %s\n", result, path);//???
+        //show_msg(stderr, "root access returns %d on %s\n", result, path);//???
         return result;
     }
 
@@ -1916,7 +1916,7 @@ int sqlfs_proc_access(sqlfs_t *sqlfs, const char *path, int mask)
 
     if (result == 0)
         r = get_permission_data(get_sqlfs(sqlfs), path, &fgid, &fuid, &fmode);
-    //fprintf(stderr, "get permission returns %d\n", r);//???
+    //show_msg(stderr, "get permission returns %d\n", r);//???
     if ((r == SQLITE_OK) && (result == 0))
     {
         if (uid == (uid_t) fuid)
@@ -3133,7 +3133,7 @@ int sqlfs_get_attr(sqlfs_t *sqlfs, const char *key, key_attr *attr)
             r = -1;
     }
     COMPLETE(1)
-//fprintf(stderr, "return %d on %s\n", r, key);//???
+//show_msg(stderr, "return %d on %s\n", r, key);//???
     return r;
 
 }
@@ -3304,7 +3304,7 @@ static void * sqlfs_t_init(const char *db_file, const char *db_key)
     r = sqlite3_open(db_file, &(sql_fs->db));
     if (r != SQLITE_OK)
     {
-        fprintf(stderr, "Cannot open the database file %s\n", db_file);
+        show_msg(stderr, "Cannot open the database file %s\n", db_file);
         return 0;
     }
 
@@ -3314,7 +3314,7 @@ static void * sqlfs_t_init(const char *db_file, const char *db_key)
         r = sqlite3_key(sql_fs->db, db_key, strlen(db_key));
         if (r != SQLITE_OK)
         {
-            fprintf(stderr, "Opening the database with provided key failed.\n");
+            show_msg(stderr, "Opening the database with provided key failed.\n");
             return 0;
         }
     }

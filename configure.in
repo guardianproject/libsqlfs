@@ -14,7 +14,7 @@ AC_PROG_LIBTOOL
 AC_DEFINE(_GNU_SOURCE, 1)
 
 # always include debug symbols in compile, they're stripped at install
-CFLAGS="$CFLAGS -g"
+CFLAGS="$CFLAGS -g -Wall -Werror -Wno-error=uninitialized"
 
 case $host in
 *darwin*)

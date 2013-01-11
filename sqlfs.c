@@ -3302,6 +3302,7 @@ static void * sqlfs_t_init(const char *db_file, const char *db_key)
     if (max_inode == 0)
         max_inode = get_current_max_inode(sql_fs);
 
+    // TODO Investigate this busy_timeout function, it proved useful in preventing permanent EBUSY errors
     /*sqlite3_busy_timeout( sql_fs->db, 500); *//* default timeout 0.5 seconds */
     sqlite3_exec(sql_fs->db, "PRAGMA synchronous = OFF;", NULL, NULL, NULL);
     r = ensure_existence(sql_fs, "/", TYPE_DIR);

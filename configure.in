@@ -10,6 +10,8 @@ AM_INIT_AUTOMAKE([dist-bzip2 -Wall])
 
 AC_PROG_CC
 AC_PROG_LIBTOOL
+# needed for "per-product" flags, i.e. fsx_CFLAGS
+AM_PROG_CC_C_O
 
 AC_DEFINE(_GNU_SOURCE, 1)
 

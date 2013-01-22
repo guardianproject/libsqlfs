@@ -225,6 +225,16 @@ void clean_value(key_value *value)
  * Originally, 'begin exclusive' was only used in LIBFUSE mode, and not in
  * standalone library mode, where 'begin' was used.  But we found it too
  * unreliable so we switched standalone mode to also use 'begin exclusive'.
+ * 
+ * In order to fix locking issues but improve overall performance, 
+ * begin_transaction will now obtain a reserved lock immediately. This will 
+ * reduce contention for write locks that was occuring with deferred 
+ * transactions, and performs much better than exclusive transactions with
+ * immediate exclusive locking.
+ *
+ * https://www.sqlite.org/lockingv3.html
+ * https://www.sqlite.org/lang_transaction.html
+ * https://www.sqlite.org/c3ref/busy_handler.html 
  */
 
 //static pthread_mutex_t transaction_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -238,10 +248,10 @@ void clean_value(key_value *value)
 static int begin_transaction(sqlfs_t *sqlfs)
 {
     int i;
-    /* TODO use better locking techniques to provide more concurrency:
-     * http://www.sqlite.org/lockingv3.html
-     * http://www.sqlite.org/wal.html  */
-    const char *cmd = "begin exclusive;";
+    /* begin immediate will immediately obtain a reserved lock on the 
+     * database but will allow readers to proceed.
+    */
+    const char *cmd = "begin immediate;";
 
     sqlite3_stmt *stmt;
     const char *tail;
@@ -3318,6 +3328,36 @@ static void * sqlfs_t_init(const char *db_file, const char *db_key)
         sqlite3_exec(sql_fs->db, "PRAGMA cipher_page_size = 8192;", NULL, NULL, NULL);
     }
 #endif
+    /* WAL mode improves the performance of write operations (page data must only be
+     * written to disk one time) and improves concurrency by reducing blocking between
+     * readers and writers */
+    sqlite3_exec(sql_fs->db, "PRAGMA journal_mode = WAL;", NULL, NULL, NULL);
+
+    /* WAL mode only performs fsync on checkpoint operation, which reduces overhead
+     * It should make it possible to run with synchronous set to NORMAL with less
+     * of a performance impact. 
+    */
+    sqlite3_exec(sql_fs->db, "PRAGMA synchronous = OFF;", NULL, NULL, NULL);
+
+    /* It is vitally important that write operations not fail to execute due
+     * to busy timeouts. Even using WAL, its still possible for a command to be
+     * blocked due to attempted concurrent write operations. If this happens 
+     * without a busy handler, the write will fail and lead to corruption. 
+     * 
+     * Libsqlfs has attempted to do its own rudimentary busy handling via delay(),
+     * however, its implemetnation seems to pre-date the availablity of busy 
+     * handlers in SQLite. Also, it is only used for some operations, and does not 
+     * protect many operations from failure.
+     * 
+     * Thus, it is preferable to register SQLite's default busy handler with a 
+     * relatively high timeout to globally protect all operations. This is completely
+     * transparent to the caller, and ensure that while a write operation might be
+     * delayed for a period of time, it is unlikely that it will fail completely.
+     *
+     * An initial timeout for 10 seconds is set here, but could be increased to reduce
+     * the chances of failure under high load.
+     */
+    sqlite3_busy_timeout( sql_fs->db, 10000); 
 
     sql_fs->default_mode = 0700; /* allows the creation of children under / , default user at initialization is 0 (root)*/
 
@@ -3326,12 +3366,6 @@ static void * sqlfs_t_init(const char *db_file, const char *db_key)
     if (max_inode == 0)
         max_inode = get_current_max_inode(sql_fs);
 
-    /* When using the 'begin' sqlite3 locking mode, this busy timeout is
-     * necessary to make sure that the call to ensure_existence succeeds when
-     * the filesystem is under load. With 'begin exclusive' its not needed. */
-    // TODO Investigate this busy_timeout function, it proved useful in preventing permanent EBUSY errors
-    /*sqlite3_busy_timeout( sql_fs->db, 500); *//* default timeout 0.5 seconds */
-    sqlite3_exec(sql_fs->db, "PRAGMA synchronous = OFF;", NULL, NULL, NULL);
     r = ensure_existence(sql_fs, "/", TYPE_DIR);
     if( !r )
         return 0;

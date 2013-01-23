@@ -23,6 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
+#include <sys/time.h>
 #include "sqlfs.h"
 
 char *data = "this is a string";
@@ -316,5 +317,87 @@ void run_standard_tests(sqlfs_t* sqlfs)
         test_read_byte_with_offset(sqlfs, size);
         test_truncate(sqlfs, size);
         test_truncate_existing_file(sqlfs, size);
+    }
+}
+
+
+/* performance measures ----------------------------------------------------- */
+
+#define TIMING(t1,t2) \
+  (double) (t2.tv_usec - t1.tv_usec)/1000000 + \
+  (double) (t2.tv_sec - t1.tv_sec)
+
+void test_write_n_bytes_nosleep(sqlfs_t *sqlfs, int testsize)
+{
+    char testfilename[PATH_MAX];
+    char randomdata[testsize];
+    struct fuse_file_info fi = { 0 };
+    randomfilename(testfilename, PATH_MAX, "write_n_bytes");
+    sqlfs_proc_write(sqlfs, testfilename, randomdata, testsize, 0, &fi);
+}
+
+void test_read_n_bytes_nosleep(sqlfs_t *sqlfs, const char* testfilename, int testsize)
+{
+    char randomdata[testsize];
+    struct fuse_file_info fi = { 0 };
+    sqlfs_proc_read(sqlfs, testfilename, randomdata, sizeof(randomdata), 0, &fi);
+}
+
+#define START_BLOCK_SIZE 256
+#define END_BLOCK_SIZE 32768
+
+void run_perf_tests(sqlfs_t *sqlfs, int testsize)
+{
+    int i, size;
+    struct timeval tstart, tstop;
+    char testfilename[PATH_MAX];
+    char randomdata[testsize];
+    struct fuse_file_info fi = { 0 };
+
+    randomfilename(testfilename, PATH_MAX, "read_n_bytes");
+    sqlfs_proc_write(sqlfs, testfilename, randomdata, testsize, 0, &fi);
+    printf("reads without transactions ------------------------------\n");
+    for (size=START_BLOCK_SIZE; size <= END_BLOCK_SIZE ; size *= 2) {
+        gettimeofday(&tstart, NULL);
+        for(i = 0; i < testsize / size; i++) {
+            test_read_n_bytes_nosleep(sqlfs, testfilename, size);
+        }
+        gettimeofday(&tstop, NULL);
+        printf("* read %d bytes in %d %d byte chunks in \t%f seconds\n",
+               testsize, testsize / size, size, TIMING(tstart,tstop));
+    }
+    printf("reads with transactions ------------------------------\n");
+    for (size=START_BLOCK_SIZE; size <= END_BLOCK_SIZE ; size *= 2) {
+        gettimeofday(&tstart, NULL);
+        sqlfs_begin_transaction(sqlfs);
+        for(i = 0; i < testsize / size; i++) {
+            test_read_n_bytes_nosleep(sqlfs, testfilename, size);
+        }
+        sqlfs_complete_transaction(sqlfs,1);
+        gettimeofday(&tstop, NULL);
+        printf("* read %d bytes in %d %d byte chunks in \t%f seconds\n",
+               testsize, testsize / size, size, TIMING(tstart,tstop));
+    }
+    printf("writes without transactions ------------------------------\n");
+    for (size=START_BLOCK_SIZE; size <= END_BLOCK_SIZE ; size *= 2) {
+        gettimeofday(&tstart, NULL);
+        for(i = 0; i < testsize / size; i++) {
+          test_write_n_bytes_nosleep(sqlfs, size);
+        }
+        gettimeofday(&tstop, NULL);
+        printf("* wrote %d bytes in %d %d byte chunks in \t%f seconds\n",
+          testsize, testsize / size, size, TIMING(tstart,tstop));
+    }
+    printf("writes with transactions ------------------------------\n");
+    for (size=START_BLOCK_SIZE; size <= END_BLOCK_SIZE ; size *= 2) {
+        gettimeofday(&tstart, NULL);
+        sqlfs_begin_transaction(sqlfs);
+        for(i = 0; i < testsize / size; i++) {
+          test_write_n_bytes_nosleep(sqlfs, size);
+        }
+        sqlfs_complete_transaction(sqlfs,1);
+        gettimeofday(&tstop, NULL);
+        printf("* wrote %d bytes in %d %d byte chunks in \t%f seconds\n",
+          testsize, testsize / size, size, TIMING(tstart,tstop));
     }
 }

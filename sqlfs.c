@@ -112,15 +112,6 @@ static int max_inode = 0;
 static void * sqlfs_t_init(const char *db_file, const char *db_key);
 static void sqlfs_t_finalize(void *arg);
 
-static void delay(int ms)
-{
-    struct timeval timeout;
-    timeout.tv_sec = ms / 1000 ;
-    timeout.tv_usec = 1000 * ( ms % 1000 );
-
-    select(0, 0, 0, 0, &timeout);
-}
-
 static __inline__ int sql_step(sqlite3_stmt *stmt)
 {
     int r, i;
@@ -129,7 +120,6 @@ static __inline__ int sql_step(sqlite3_stmt *stmt)
         r = sqlite3_step(stmt);
         if (r != SQLITE_BUSY)
             break;
-        delay(100);
     }
 
     return r;
@@ -269,7 +259,6 @@ static int begin_transaction(sqlfs_t *sqlfs)
             r = sqlite3_step(stmt);
             if (r != SQLITE_BUSY)
                 break;
-            delay(100);
         }
         sqlite3_reset(stmt);
         if (r == SQLITE_DONE)
@@ -330,7 +319,6 @@ static int commit_transaction(sqlfs_t *sqlfs, int r0)
             r = sqlite3_step(stmt);
             if (r != SQLITE_BUSY)
                 break;
-            delay(100);
         }
         sqlite3_reset(stmt);
         if (r == SQLITE_DONE)
@@ -392,7 +380,6 @@ static int break_transaction(sqlfs_t *sqlfs, int r0)
             r = sqlite3_step(stmt);
             if (r != SQLITE_BUSY)
                 break;
-            delay(100);
         }
         sqlite3_reset(stmt);
         if (r == SQLITE_DONE)
@@ -3344,8 +3331,8 @@ static void * sqlfs_t_init(const char *db_file, const char *db_key)
      * blocked due to attempted concurrent write operations. If this happens 
      * without a busy handler, the write will fail and lead to corruption. 
      * 
-     * Libsqlfs has attempted to do its own rudimentary busy handling via delay(),
-     * however, its implemetnation seems to pre-date the availablity of busy 
+     * Libsqlfs had attempted to do its own rudimentary busy handling via delay(),
+     * however, its implementation seems to pre-date the availablity of busy
      * handlers in SQLite. Also, it is only used for some operations, and does not 
      * protect many operations from failure.
      * 

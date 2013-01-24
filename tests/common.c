@@ -299,6 +299,37 @@ void test_write_seek_write(sqlfs_t *sqlfs)
     printf("passed\n");
 }
 
+void test_o_append_existing_file(sqlfs_t *sqlfs)
+{
+    printf("Testing opening existing file O_APPEND and writing...");
+    int i, testsize=200;
+    char buf[testsize];
+    char buf2[testsize];
+    char testfilename[PATH_MAX];
+    struct stat sb;
+    struct fuse_file_info ffi;
+    struct fuse_file_info fi = { 0 };
+    fi.flags |= O_RDONLY;
+    randomfilename(testfilename, PATH_MAX, "append_existing_file");
+    create_test_file(sqlfs, testfilename, testsize);
+    sqlfs_proc_getattr(sqlfs, testfilename, &sb);
+    assert(sb.st_size == testsize);
+    i = sqlfs_proc_read(sqlfs, testfilename, buf, testsize, 0, &fi);
+    assert(i == testsize);
+    ffi.flags = O_WRONLY | O_APPEND;
+    ffi.direct_io = 0;
+    int rc = sqlfs_proc_open(sqlfs, testfilename, &ffi);
+    assert(rc == 0);
+    sqlfs_proc_write(sqlfs, testfilename, buf, testsize, 0, &ffi);
+    sqlfs_proc_getattr(sqlfs, testfilename, &sb);
+    assert(sb.st_size == testsize*2);
+    i = sqlfs_proc_read(sqlfs, testfilename, buf2, testsize, 0, &fi);
+    assert(!strcmp(buf, buf2));
+    i = sqlfs_proc_read(sqlfs, testfilename, buf2, testsize, testsize, &fi);
+    assert(!strcmp(buf, buf2));
+    printf("passed\n");
+}
+
 void run_standard_tests(sqlfs_t* sqlfs)
 {
     int size;
@@ -311,6 +342,7 @@ void run_standard_tests(sqlfs_t* sqlfs)
     test_create_file_with_small_string(sqlfs);
     test_write_seek_write(sqlfs);
     test_read_bigger_than_buffer(sqlfs);
+    test_o_append_existing_file(sqlfs);
 
     for (size=10; size < 1000001; size *= 10) {
         test_write_n_bytes(sqlfs, size);

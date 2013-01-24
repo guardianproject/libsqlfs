@@ -279,7 +279,7 @@ void test_write_seek_write(sqlfs_t *sqlfs)
     const int sz_skip1 = strlen(skip1);
     struct stat sb;
     struct fuse_file_info fi = { 0 };
-    fi.flags |= ~0;
+    fi.flags |= O_RDWR | O_CREAT;
     int rc = sqlfs_proc_write(sqlfs, testfilename, skip1, sz_skip1, 0, &fi);
     assert(rc);
     const char skip2[26] = "it was the worst of times";

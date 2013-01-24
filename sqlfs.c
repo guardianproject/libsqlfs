@@ -2907,6 +2907,12 @@ int sqlfs_proc_write(sqlfs_t *sqlfs, const char *path, const char *buf, size_t s
         {
             value.data = calloc(orig_size, sizeof(char));
             value.size = orig_size;
+            if (fi)
+            {
+                if ((fi->flags & O_APPEND)) {
+                    offset = value.size;
+                }
+            }
         }
         if ((size_t) offset > value.size || length > (value.size - (size_t) offset))
         {

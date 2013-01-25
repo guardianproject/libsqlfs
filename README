@@ -1,7 +1,7 @@
 Libsqlfs
 
+Copyright 2011-2013, various developers for Guardian Project
 Copyright 2006, Palmsource, Inc., an ACCESS company.
-Sunnyvale, California, USA
 
 Libsqlfs is free/open source software distributed under the GNU Lesser
 General Public License, version 2 or later versions as published by the Free
@@ -9,7 +9,6 @@ Software Foundation.  See the file COPYING for the complete licensing terms.
 
 Introduction
 ============
-
 
 The libsqlfs library implements a POSIX style file system on top of an
 SQLite database.  It allows applications to have access to a full read/write
@@ -25,10 +24,16 @@ applications.
 Rational
 ========
 
-PalmSource software developers recently created libsqlfs.  This library is an
-adjunct to the very popular open source SQLite database software.  Libsqlfs
+PalmSource software developers originally created libsqlfs.  This library is
+an adjunct to the very popular open source SQLite database software.  Libsqlfs
 was created as part of PalmSource's ALP mobile phone platform, but it is
 useful in many other applications too.
+
+Guardian Project adopted libsqlfs to use in conjunction with SQLCipher, a
+custom version of SQLite3 that includes support for encrypting the database
+contents.  This makes it into a self-contained, encrypted filesystem.
+IOCipher is a project based on top of libsqlfs that provides a virtual
+encrypted file system using the java.io API.
 
 The libsqlfs library provides an easy way for applications to put an
 entire read/write file system into a relational database as a single file
@@ -186,7 +191,12 @@ int sqlfs_init(const char *)
 
 int sqlfs_open(const char *db, sqlfs_t **);
     creates a new connection to the libsqlfs database.  The first argument,
-    if not NULL,specifies a different database file from the default.
+    if not NULL, specifies a different database file from the default.
+
+int sqlfs_open_key(const char *db_file, const char *key, sqlfs_t **sqlfs);
+    creates a new connection to an encrypted libsqlfs database and unlocks it
+    using the password provided.  The first argument, if not NULL, specifies a
+    different database file from the default.
 
 int sqlfs_close(sqlfs_t *);
     closes and frees a libsqlfs connection.
@@ -226,7 +236,7 @@ transaction level.  The actual SQLite transaction are only started when the
 level goes above 0 and only ended when the level falls to zero.    
 
 For a sample application showing the usage of libsqlfs, see the test
-program test.c in the test directory.
+programs in the tests/ directory.
 
 Tests
 =====
@@ -249,17 +259,20 @@ You can also select which tests you want to run:
 Supported Platforms
 ===================
 
-To date, libsqlfs is tested on 32-bit i386 and StrongArm (Treo 650
-phone) GNU/Linux (Ubnutu).
+To date, libsqlfs is tested on 32-bit i386, 64-bit amd64 and ARM (Android
+and Palm Treo 650 phones).  It runs on GNU/Linux (Debian, Ubuntu,
+Mint, and Fedora) and Android, and most likely and UNIX.
 
-Currently libsqlfs, when used as a library, only has been tested on GNU/Linux
-(Ubnutu and Red Hat  Fedora 5) although it shall be usable on any Unix like
-platforms where SQLite runs with at most minor changes.   It shall also work
-on the Cygwin enviroment but this is not tested.  Patches for different
-platform support are welcome.
+Currently libsqlfs, when used as a library, has been tested on GNU/Linux
+(Debian, Mint, Ubuntu, Red Hat, and Fedora) although it should be usable on any
+UNIX like platforms where SQLite runs with at most minor changes.  It should
+also work on the Cygwin enviroment but this is not tested.  Patches for
+different platform support are welcome.
 
-For use at the OS level, libsqlfs only supports the FUSE on the Linux kernel
-on both 32-bit i386 and StrongArm.
+For use at the OS level, libsqlfs only supports the FUSE on the Linux kernel.
+It should be possible to make it work on Mac OS X using fuse4x., and also
+FreeBSD or Solaris provided they have a FUSE that is compatible with the Linux
+FUSE.
 
 Supported Database
 ==================

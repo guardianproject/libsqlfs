@@ -206,18 +206,19 @@ void clean_value(key_value *value)
 }
 
 
-/* There are a few different locking techniques in the code still, some
- * commented out, and really only one in use: the sqlite 'begin exclusive'.
- * There is a pthread mutex lock below that is quite large grained. Then in
- * sqlfs_t_init, there is the sqlite3_busy_timeout(), which is there to help
- * ensure that the call to create "/" if it doesn't exist doesn't fail.
+/* There were originally a few different locking techniques in the code,
+ * some commented out, and really only one in use: the sqlite 'begin
+ * exclusive'.  There was a pthread mutex lock below that is quite large
+ * grained. Then in sqlfs_t_init, there was the sqlite3_busy_timeout(), which
+ * was there to help ensure that the call to create "/" if it doesn't exist
+ * doesn't fail.
  *
  * Originally, 'begin exclusive' was only used in LIBFUSE mode, and not in
  * standalone library mode, where 'begin' was used.  But we found it too
  * unreliable so we switched standalone mode to also use 'begin exclusive'.
  * 
  * In order to fix locking issues but improve overall performance, 
- * begin_transaction will now obtain a reserved lock immediately. This will 
+ * begin_transaction now obtains a reserved lock immediately. This will
  * reduce contention for write locks that was occuring with deferred 
  * transactions, and performs much better than exclusive transactions with
  * immediate exclusive locking.
@@ -226,11 +227,6 @@ void clean_value(key_value *value)
  * https://www.sqlite.org/lang_transaction.html
  * https://www.sqlite.org/c3ref/busy_handler.html 
  */
-
-//static pthread_mutex_t transaction_lock = PTHREAD_MUTEX_INITIALIZER;
-#define TRANS_LOCK //pthread_mutex_lock(&transaction_lock);
-#define TRANS_UNLOCK //pthread_mutex_unlock(&transaction_lock);
-
 
 #undef INDEX
 #define INDEX 100
@@ -246,8 +242,6 @@ static int begin_transaction(sqlfs_t *sqlfs)
     sqlite3_stmt *stmt;
     const char *tail;
     int r = SQLITE_OK;
-    TRANS_LOCK
-
 
     if (get_sqlfs(sqlfs)->transaction_level == 0)
     {
@@ -265,14 +259,12 @@ static int begin_transaction(sqlfs_t *sqlfs)
             r = SQLITE_OK;
         if (r == SQLITE_BUSY)
         {
-            TRANS_UNLOCK;
             show_msg(stderr, "database is busy!\n");
             return r;  /* busy, return back */
         }
         get_sqlfs(sqlfs)->in_transaction = 1;
     }
     get_sqlfs(sqlfs)->transaction_level++;
-    TRANS_UNLOCK
     return r;
 }
 
@@ -306,12 +298,7 @@ static int commit_transaction(sqlfs_t *sqlfs, int r0)
         stmt = stmt1;
     else
         stmt = stmt2;
-    TRANS_LOCK
 
-
-    /*assert(get_sqlfs(sqlfs)->transaction_level > 0);*/
-
-    /*assert(get_sqlfs(sqlfs)->transaction_level >= 0);*/
     if ((get_sqlfs(sqlfs)->transaction_level - 1 == 0) && (get_sqlfs(sqlfs)->in_transaction))
     {
         for (i = 0; i < 10; i++)
@@ -325,7 +312,6 @@ static int commit_transaction(sqlfs_t *sqlfs, int r0)
             r = SQLITE_OK;
         if (r == SQLITE_BUSY)
         {
-            TRANS_UNLOCK;
             show_msg(stderr, "database is busy!\n");
             return r;  /* busy, return back */
         }
@@ -334,9 +320,6 @@ static int commit_transaction(sqlfs_t *sqlfs, int r0)
     }
     get_sqlfs(sqlfs)->transaction_level--;
 
-    /*if (get_sqlfs(sqlfs)->transaction_level == 0)
-        assert(get_sqlfs(sqlfs)->in_transaction == 0);*/
-    TRANS_UNLOCK
     return r;
 }
 
@@ -371,8 +354,6 @@ static int break_transaction(sqlfs_t *sqlfs, int r0)
     else
         stmt = stmt2;
 
-    TRANS_LOCK
-
     if (get_sqlfs(sqlfs)->in_transaction)
     {
         for (i = 0; i < 10; i++)
@@ -386,14 +367,13 @@ static int break_transaction(sqlfs_t *sqlfs, int r0)
             r = SQLITE_OK;
         if (r == SQLITE_BUSY)
         {
-            TRANS_UNLOCK;
             show_msg(stderr, "database is busy!\n");
             return r;  /* busy, return back */
         }
         //**assert(sqlite3_get_autocommit(get_sqlfs(sqlfs)->db) != 0);*/
         get_sqlfs(sqlfs)->in_transaction = 0;
     }
-    TRANS_UNLOCK
+
     return r;
 }
 

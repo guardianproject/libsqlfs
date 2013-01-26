@@ -171,11 +171,13 @@ static __inline__ char *make_str_copy(const char *str)
 #define  LOGW(...)  __android_log_print(ANDROID_LOG_WARN, LOG_TAG, __VA_ARGS__)
 static void show_msg(FILE *f, char *fmt, ...)
 {
+    char buf[1000];
     va_list ap;
 
     va_start(ap, fmt);
-    __android_log_print(ANDROID_LOG_WARN, LOG_TAG, fmt, ap);
+    vsnprintf(buf, 1000, fmt, ap);
     va_end(ap);
+    __android_log_print(ANDROID_LOG_WARN, LOG_TAG, buf);
 }
 #else
 static void show_msg(FILE *f, char *fmt, ...)

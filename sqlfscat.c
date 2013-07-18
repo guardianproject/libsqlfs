@@ -59,7 +59,7 @@ int main(int argc, char *argv[])
     sqlfs_proc_open(sqlfs, file, &ffi);
     while((n = sqlfs_proc_read(sqlfs, file, buf, BUF_SIZE, wrote, &ffi)) > 0)
     {
-        wrote += write(1, buf, n); // write to stdout
+        wrote += fwrite(buf, sizeof(char), n, stdout);
     }
 
     sqlfs_close(sqlfs);

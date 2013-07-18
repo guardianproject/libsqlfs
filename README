@@ -115,6 +115,10 @@ ls /mnt/sqlfs
 The location of the SQLite database is hard-coded in fuse_main.c.  Change the
 argument to sqlfs_init() to suit your needs.
 
+The database file that it opens is currently hard-coded in fuse_sqlfs.c as
+/tmp/fsdata.  If you want to use a different database file, or provide a
+key to an encrypted file, then just edit fuse_sqlfs.c and rebuild.
+
 APIs
 ====
 

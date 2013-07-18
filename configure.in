@@ -9,6 +9,7 @@ AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE([dist-bzip2 -Wall])
 
 AC_PROG_CC
+AC_PROG_CXX
 AC_PROG_LIBTOOL
 # needed for "per-product" flags, i.e. fsx_CFLAGS
 AM_PROG_CC_C_O
@@ -81,7 +82,7 @@ AS_IF([test "x$with_fuse" != xno],
                AC_DEFINE([HAVE_LIBFUSE], [1],
                          [Define if you have fuse])
                with_fuse=yes
-	       CFLAGS="$CFLAGS -D_FILE_OFFSET_BITS=64 -D_REENTRANT -DFUSE_USE_VERSION=25"
+	       CPPFLAGS="$CPPFLAGS -D_FILE_OFFSET_BITS=64 -D_REENTRANT -DFUSE_USE_VERSION=25"
 	       LIBS="$LIBS -lpthread"
               ],
              [if test "x$with_fuse" != xcheck; then

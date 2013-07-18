@@ -19,6 +19,8 @@ m4/
 #
 # build products
 fuse_sqlfs
+sqlfscat
+sqlfsls
 libsqlfs-1.0.la
 libsqlfs.pc
 *.o
@@ -34,3 +36,6 @@ tests/c_thread_api_key
 tests/c_api_key
 tests/c_api_key.db
 tests/fuse_test
+#
+# emacs!
+*~

@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdlib.h>
+#include <string.h>
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -39,19 +39,38 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Not a regular file: %s\n", db);
         exit(1);
     }
-    if (!sqlfs_open(db, &sqlfs)) {
-        fprintf(stderr, "Failed to open: %s\n", db);
-        return 1;
-    }
-    sqlfs_init(db);
 
-    // TODO memset(0) the key after its passed to sqlfs
+#ifdef HAVE_LIBSQLCIPHER
+/* get the password from stdin */
+    char key[BUF_SIZE];
+    char *p = fgets(key, BUF_SIZE, stdin);
+    if (p)
+    {
+        /* remove trailing newline */
+        size_t last = strlen(p) - 1;
+        if (p[last] == '\n')
+            p[last] = '\0';
+        if (!sqlfs_open_key(db, key, &sqlfs)) {
+            fprintf(stderr, "Failed to open: %s\n", db);
+            return 1;
+        }
+        sqlfs_init_key(db, key);
+        memset(key, 0, BUF_SIZE); // zero out password
+    }
+    else
+#endif /* HAVE_LIBSQLCIPHER */
+    {
+        if (!sqlfs_open(db, &sqlfs)) {
+            fprintf(stderr, "Failed to open: %s\n", db);
+            return 1;
+        }
+        sqlfs_init(db);
+    }
 
     if (!sqlfs_proc_access(sqlfs, file, R_OK)) {
         fprintf(stderr, "Cannot access %s in %s\n", file, db);
         //return 1;
     }
-    
 
 /* now read the file from sqlfs */
     struct fuse_file_info ffi;

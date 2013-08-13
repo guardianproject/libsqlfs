@@ -35,6 +35,7 @@ extern "C" {
 #ifdef HAVE_LIBFUSE
 # include "fuse.h"
 #else
+# include <sys/stat.h>
 # include <stdint.h>
 
     /* the following struct derived from the FUSE header file

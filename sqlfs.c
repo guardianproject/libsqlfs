@@ -3385,7 +3385,8 @@ int sqlfs_open_key(const char *db_file, const char *key, sqlfs_t **sqlfs)
     if (db_file == 0)
         db_file = default_db_file;
     *sqlfs = sqlfs_t_init(db_file, key);
-    if (!*sqlfs)
+
+    if (*sqlfs == 0)
         return 0;
     return 1;
 }
@@ -3393,7 +3394,6 @@ int sqlfs_open_key(const char *db_file, const char *key, sqlfs_t **sqlfs)
 
 int sqlfs_close(sqlfs_t *sqlfs)
 {
-
     sqlfs_t_finalize(sqlfs);
     return 1;
 }

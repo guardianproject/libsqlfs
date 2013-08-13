@@ -218,16 +218,16 @@ void clean_value(key_value *value)
  * Originally, 'begin exclusive' was only used in LIBFUSE mode, and not in
  * standalone library mode, where 'begin' was used.  But we found it too
  * unreliable so we switched standalone mode to also use 'begin exclusive'.
- * 
- * In order to fix locking issues but improve overall performance, 
+ *
+ * In order to fix locking issues but improve overall performance,
  * begin_transaction now obtains a reserved lock immediately. This will
- * reduce contention for write locks that was occuring with deferred 
+ * reduce contention for write locks that was occuring with deferred
  * transactions, and performs much better than exclusive transactions with
  * immediate exclusive locking.
  *
  * https://www.sqlite.org/lockingv3.html
  * https://www.sqlite.org/lang_transaction.html
- * https://www.sqlite.org/c3ref/busy_handler.html 
+ * https://www.sqlite.org/c3ref/busy_handler.html
  */
 
 #undef INDEX
@@ -236,7 +236,7 @@ void clean_value(key_value *value)
 static int begin_transaction(sqlfs_t *sqlfs)
 {
     int i;
-    /* begin immediate will immediately obtain a reserved lock on the 
+    /* begin immediate will immediately obtain a reserved lock on the
      * database but will allow readers to proceed.
     */
     const char *cmd = "begin immediate;";
@@ -3310,21 +3310,21 @@ static void * sqlfs_t_init(const char *db_file, const char *db_key)
 
     /* WAL mode only performs fsync on checkpoint operation, which reduces overhead
      * It should make it possible to run with synchronous set to NORMAL with less
-     * of a performance impact. 
+     * of a performance impact.
     */
     sqlite3_exec(sql_fs->db, "PRAGMA synchronous = OFF;", NULL, NULL, NULL);
 
     /* It is vitally important that write operations not fail to execute due
      * to busy timeouts. Even using WAL, its still possible for a command to be
-     * blocked due to attempted concurrent write operations. If this happens 
-     * without a busy handler, the write will fail and lead to corruption. 
-     * 
+     * blocked due to attempted concurrent write operations. If this happens
+     * without a busy handler, the write will fail and lead to corruption.
+     *
      * Libsqlfs had attempted to do its own rudimentary busy handling via delay(),
      * however, its implementation seems to pre-date the availablity of busy
-     * handlers in SQLite. Also, it is only used for some operations, and does not 
+     * handlers in SQLite. Also, it is only used for some operations, and does not
      * protect many operations from failure.
-     * 
-     * Thus, it is preferable to register SQLite's default busy handler with a 
+     *
+     * Thus, it is preferable to register SQLite's default busy handler with a
      * relatively high timeout to globally protect all operations. This is completely
      * transparent to the caller, and ensure that while a write operation might be
      * delayed for a period of time, it is unlikely that it will fail completely.
@@ -3332,7 +3332,7 @@ static void * sqlfs_t_init(const char *db_file, const char *db_key)
      * An initial timeout for 10 seconds is set here, but could be increased to reduce
      * the chances of failure under high load.
      */
-    sqlite3_busy_timeout( sql_fs->db, 10000); 
+    sqlite3_busy_timeout( sql_fs->db, 10000);
 
     sql_fs->default_mode = 0700; /* allows the creation of children under / , default user at initialization is 0 (root)*/
 

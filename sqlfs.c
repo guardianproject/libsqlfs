@@ -3379,6 +3379,9 @@ int sqlfs_open(const char *db_file, sqlfs_t **sqlfs)
 #ifdef HAVE_LIBSQLCIPHER
 int sqlfs_open_key(const char *db_file, const char *key, sqlfs_t **sqlfs)
 {
+    if( strlen(key) > MAX_DB_KEY_LENGTH ) {
+        return 0;
+    }
     if (db_file == 0)
         db_file = default_db_file;
     *sqlfs = sqlfs_t_init(db_file, key);
@@ -3558,7 +3561,10 @@ int sqlfs_init(const char *db_file_name)
 #ifdef HAVE_LIBSQLCIPHER
 int sqlfs_init_key(const char *db_file, const char *db_key)
 {
-    strncpy(default_db_key, db_key, MAX_DB_KEY_LENGTH);
+    if( strlen(db_key) > MAX_DB_KEY_LENGTH ) {
+        return 1;
+    }
+    strncpy(default_db_key, db_key, strlen(db_key) );
     return sqlfs_init(db_file);
 }
 #endif

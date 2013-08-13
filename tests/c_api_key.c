@@ -23,7 +23,7 @@ int main(int argc, char *argv[])
 {
     char *database_filename = "c_api_key.db";
     char *database_password = "mytestpassword";
-    int rc;
+    int rc, i;
     sqlfs_t *sqlfs = 0;
 
     if(argc > 1)
@@ -35,8 +35,20 @@ int main(int argc, char *argv[])
        printf("\n(test database '%s' exists, deleting!)\n\n", database_filename);
        unlink(database_filename);
     }
-    printf("Creating %s...", database_filename);
+
+    printf("Initing %s...", database_filename);
     sqlfs_init(database_filename);
+
+    printf("Opening database with too long password...");
+    char long_pass[600];
+    for(i = 0; i < 600; ++i) long_pass[i] = 'A';
+    long_pass[599] = '\0';
+    rc = sqlfs_open_key(argv[1], long_pass, &sqlfs);
+    assert(!rc);
+    printf("passed\n");
+
+
+    printf("Creating %s...", database_filename);
     rc = sqlfs_open_key(database_filename, database_password, &sqlfs);
     assert(rc);
     rc = sqlfs_close(sqlfs);

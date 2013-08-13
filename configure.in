@@ -44,13 +44,12 @@ AC_ARG_WITH([sqlcipher],
             [with_sqlcipher=check])
 AS_IF([test "$with_sqlcipher" != "no"],
           [AC_CHECK_LIB([sqlcipher], [sqlite3_key],
-               [if test "$with_sqlcipher" != "check"; then
+                [AC_DEFINE([HAVE_LIBSQLCIPHER], [1], [Define if you have SQLCipher])
+                 AC_DEFINE([SQLITE_HAS_CODEC], [1], [The crypto support is known as a codec])
+                 with_sqlcipher=yes],
+                [if test "$with_sqlcipher" != "check"; then
                    AC_MSG_FAILURE([--with-sqlcipher was given but test failed])
-                fi]
-                    AC_DEFINE([HAVE_LIBSQLCIPHER], [1], [Define if you have SQLCipher])
-                    AC_DEFINE([SQLITE_HAS_CODEC], [1], [The crypto support is known as a codec])
-                    with_sqlcipher=yes,
-                ,
+                fi],
                 [-lpthread])])
 
 AM_CONDITIONAL(WITH_SQLCIPHER, [test "$with_sqlcipher" = "yes"])

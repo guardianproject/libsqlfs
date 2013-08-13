@@ -95,6 +95,16 @@ extern "C" {
 
     int sqlfs_init(const char *);
 #ifdef HAVE_LIBSQLCIPHER
+    /** Initialize the db file and key
+     * 
+     * The key can be a password or a raw AES key. Refer to SQLCipher's
+     * documentation on the keying process.
+     * 
+     * http://sqlcipher.net/sqlcipher-api/
+     * 
+     * @param db_file_name the file on disk to hold the VFS
+     * @param key The password or key to encrypt the database with. Max length is 512.
+     */
     int sqlfs_init_key(const char *db_file_name, const char *key);
 #endif
 #ifdef HAVE_LIBFUSE

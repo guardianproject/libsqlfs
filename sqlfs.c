@@ -104,7 +104,7 @@ static const int BLOCK_SIZE = 8192;
 static pthread_key_t sql_key;
 
 static char default_db_file[PATH_MAX] = { 0 };
-#define MAX_DB_KEY_LENGTH 64
+#define MAX_DB_KEY_LENGTH 512
 static char default_db_key[MAX_DB_KEY_LENGTH] = { 0 };
 
 static int max_inode = 0;

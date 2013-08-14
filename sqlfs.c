@@ -1472,7 +1472,7 @@ static int get_value(sqlfs_t *sqlfs, const char *key, key_value *value, size_t b
             begin = (block_no = (begin / BLOCK_SIZE)) * BLOCK_SIZE;
             for ( ; begin < end; begin += BLOCK_SIZE, block_no++)
             {
-                r = get_value_block(sqlfs, key, value->data + begin - value->offset, block_no, NULL);
+                r = get_value_block(sqlfs, key, value->data + begin, block_no, NULL);
                 if (r != SQLITE_OK)
                     break;
             }
@@ -1531,7 +1531,8 @@ static int set_value(sqlfs_t *sqlfs, const char *key, const key_value *value, si
 
         if (end == 0)
             end = value->size;
-        begin2 = (block_no = (begin / BLOCK_SIZE)) * BLOCK_SIZE;
+        block_no = begin / BLOCK_SIZE;
+        begin2 = block_no * BLOCK_SIZE; // 'begin' rounded to BLOCK_SIZE
         end2 = end;
         if (end2 > begin2 + BLOCK_SIZE)
             end2 = begin2 + BLOCK_SIZE;
@@ -1540,7 +1541,7 @@ static int set_value(sqlfs_t *sqlfs, const char *key, const key_value *value, si
             size_t old_size = 0;
             r = get_value_block(sqlfs, key, tmp, block_no, &old_size);
             length = end2 - begin;
-            memcpy(tmp + (begin - begin2), (value->data - value->offset) + begin, length);
+            memcpy(tmp + (begin - begin2), value->data + begin, length);
             length = end2 - begin2;
             if (length < old_size)
                 length = old_size;
@@ -1551,7 +1552,7 @@ static int set_value(sqlfs_t *sqlfs, const char *key, const key_value *value, si
         for ( ; begin2 < end / BLOCK_SIZE * BLOCK_SIZE; begin2 += BLOCK_SIZE, block_no++)
         {
 
-            r = set_value_block(sqlfs, key, (value->data - value->offset) + BLOCK_SIZE * block_no, block_no, BLOCK_SIZE);
+            r = set_value_block(sqlfs, key, value->data + BLOCK_SIZE * block_no, block_no, BLOCK_SIZE);
             if (r != SQLITE_OK)
                 break;
         }
@@ -1566,7 +1567,7 @@ static int set_value(sqlfs_t *sqlfs, const char *key, const key_value *value, si
             r = get_value_block(sqlfs, key, tmp, block_no, &i);
             if (r != SQLITE_OK)
                 i = 0;
-            memcpy(tmp, (value->data - value->offset) + begin2, end - begin2 );
+            memcpy(tmp, value->data + begin2, end - begin2 );
             if (i < (int)(end - begin2))
                 i = (int)(end - begin2);
 
@@ -1940,7 +1941,7 @@ int sqlfs_proc_access(sqlfs_t *sqlfs, const char *path, int mask)
 int sqlfs_proc_readlink(sqlfs_t *sqlfs, const char *path, char *buf, size_t size)
 {
     key_attr attr = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-    key_value value = { 0, 0, 0 };
+    key_value value = { 0, 0 };
     int r, result = 0;
     BEGIN
     CHECK_PARENT_PATH(path)
@@ -2191,7 +2192,7 @@ int sqlfs_proc_rmdir(sqlfs_t *sqlfs, const char *path)
 int sqlfs_proc_symlink(sqlfs_t *sqlfs, const char *path, const char *to)
 {
     key_attr attr = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-    key_value value = { 0, 0, 0 };
+    key_value value = { 0, 0 };
     int r, result = 0;
     BEGIN
     CHECK_PARENT_WRITE(to)
@@ -2526,7 +2527,7 @@ int sqlfs_proc_truncate(sqlfs_t *sqlfs, const char *path, off_t size)
 {
     int r, result = 0;
     char *data;
-    key_value value = { 0, 0, 0 };
+    key_value value = { 0, 0 };
 
 
     BEGIN
@@ -2782,7 +2783,7 @@ int sqlfs_proc_read(sqlfs_t *sqlfs, const char *path, char *buf, size_t size, of
 {
     int i, r, result = 0;
     int64_t length = size;
-    key_value value = { 0, 0, 0 };
+    key_value value = { 0, 0 };
 
     BEGIN
     CHECK_PARENT_PATH(path)
@@ -2833,7 +2834,7 @@ int sqlfs_proc_write(sqlfs_t *sqlfs, const char *path, const char *buf, size_t s
     int i, r, result = 0;
     char *data;
     size_t length = size, orig_size = 0;
-    key_value value = { 0, 0, 0 };
+    key_value value = { 0, 0 };
 
     BEGIN
 
@@ -2853,7 +2854,7 @@ int sqlfs_proc_write(sqlfs_t *sqlfs, const char *path, const char *buf, size_t s
         return - EBADF;*/
 
     if ((i = key_exists(get_sqlfs(sqlfs), path, &orig_size) == 0), (i == 1))
-    {
+    { // path to write to does not exist
         key_attr attr = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
         CHECK_PARENT_WRITE(path)
         attr.path = strdup(path);
@@ -2879,7 +2880,7 @@ int sqlfs_proc_write(sqlfs_t *sqlfs, const char *path, const char *buf, size_t s
         result = -EBUSY;
     }
     else
-    {
+    { // path to write to already exists
         CHECK_PARENT_PATH(path)
         CHECK_WRITE(path)
     }

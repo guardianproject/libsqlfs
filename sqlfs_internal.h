@@ -92,7 +92,6 @@ typedef struct
 {
     char *data;
     size_t size;
-    size_t offset;
 } key_value;
 
 

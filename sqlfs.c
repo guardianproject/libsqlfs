@@ -1492,6 +1492,7 @@ static int get_value(sqlfs_t *sqlfs, const char *key, key_value *value, size_t b
 #undef INDEX
 #define INDEX 26
 
+/* 'begin' and 'end' are the positions in bytes relative to the file to start and finish writing to */
 static int set_value(sqlfs_t *sqlfs, const char *key, const key_value *value, size_t begin, size_t end)
 {
     int r;
@@ -2832,8 +2833,7 @@ int sqlfs_proc_write(sqlfs_t *sqlfs, const char *path, const char *buf, size_t s
                      struct fuse_file_info *fi)
 {
     int i, r, result = 0;
-    char *data;
-    size_t length = size, orig_size = 0;
+    size_t write_begin, write_end, existing_size = 0;
     key_value value = { 0, 0 };
 
     BEGIN
@@ -2853,7 +2853,7 @@ int sqlfs_proc_write(sqlfs_t *sqlfs, const char *path, const char *buf, size_t s
     if ((fi->flags & (O_WRONLY | O_RDWR)) == 0)
         return - EBADF;*/
 
-    if ((i = key_exists(get_sqlfs(sqlfs), path, &orig_size) == 0), (i == 1))
+    if ((i = key_exists(get_sqlfs(sqlfs), path, &existing_size) == 0), (i == 1))
     { // path to write to does not exist
         key_attr attr = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
         CHECK_PARENT_WRITE(path)
@@ -2886,42 +2886,41 @@ int sqlfs_proc_write(sqlfs_t *sqlfs, const char *path, const char *buf, size_t s
     }
     if (result == 0)
     {
-        if (orig_size)
+        /* handle O_APPEND'ing to an existing file */
+        if (existing_size && fi && (fi->flags & O_APPEND))
+            offset = size;
+        /* handle writes that start after the end of the existing data  */
+        if ((size_t) offset > existing_size)
         {
-            value.data = calloc(orig_size, sizeof(char));
-            value.size = orig_size;
-            if (fi)
-            {
-                if ((fi->flags & O_APPEND)) {
-                    offset = value.size;
-                }
-            }
+            printf("\noffset > existing: %d %d %d %d \n",
+                   (int)value.size, (int)offset, (int)existing_size, (int)size);
+            value.size = offset - existing_size + size;
+            printf("value.size: %d \n\n", (int)value.size);
         }
-        if ((size_t) offset > value.size || length > (value.size - (size_t) offset))
+        else
+            value.size = size;
+ /* we can't just use buf because we need to include any empty space between
+ * the end of the existing file and the offset in the buffer that we send to
+ * set_value() */
+        value.data = calloc(value.size, sizeof(char));  // TODO where is this freed?
+        if ((size_t) offset > existing_size)
+        { /* fill in the hole */
+            write_begin = existing_size;
+            write_end = size + offset;
+            memset(value.data, 126, offset - existing_size); // TODO 126 should be 0
+            printf("offset - existing_size: %d\n", offset - existing_size);
+            memcpy(value.data + (offset - existing_size), buf, size);
+        }
+        else
         {
-            data = realloc(value.data, offset + length);
-            if (!data)
-                result = -EFBIG;
-            else
-            {
-                memset(data + value.size, 0, offset + length - value.size);
-                value.data = data;
-                value.size = offset + length;
-            }
+            write_begin = offset;
+            write_end = size;
+            memcpy(value.data, buf, value.size);
         }
-        if (result == 0)
-        {
-            memcpy(value.data + offset, buf, length);
-
-            result = length;
-        }
-
-        if ((size_t) offset > orig_size)
-        {
-            length += offset - orig_size;
-            offset = orig_size; /* fill in the hole */
-        }
-        r = set_value(get_sqlfs(sqlfs), path, &value, offset, offset + length);
+        printf("value.data: %s\n", value.data);
+        result = value.size;
+        printf("begin %d   end %d  value.size %d\n", write_begin, write_end, value.size);
+        r = set_value(get_sqlfs(sqlfs), path, &value, write_begin, write_end);
         if (r != SQLITE_OK)
             result = -EIO;
     }

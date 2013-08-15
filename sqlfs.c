@@ -1499,12 +1499,41 @@ static int set_value(sqlfs_t *sqlfs, const char *key, const key_value *value, si
     const char *tail;
     sqlite3_stmt *stmt;
     size_t begin2, end2, length, i;
+    size_t current_file_size = 0;
     int block_no;
-    static const char *cmd1 = "insert or ignore into meta_data (key) VALUES ( :key ) ; ";
-    static const char *cmd2 = "update meta_data set size = :size where key =  :key  ; ";
+    static const char *selectsize = "select size from meta_data where key = :key ";
+    static const char *createfile_cmd = "insert or ignore into meta_data (key) VALUES ( :key ) ; ";
+    static const char *updatesize_cmd = "update meta_data set size = :size where key =  :key  ; ";
     char *tmp;
+
+    /* get the size of the file if it already exists */
+    r = sqlite3_prepare(get_sqlfs(sqlfs)->db, selectsize, -1, &stmt, &tail);
+    if (r != SQLITE_OK)
+    {
+        show_msg(stderr, "%s\n", sqlite3_errmsg(get_sqlfs(sqlfs)->db));
+        return r;
+    }
+    sqlite3_bind_text(stmt, 1, key, -1, SQLITE_STATIC);
+    if (r != SQLITE_OK)
+        show_msg(stderr, "%s\n", sqlite3_errmsg(get_sqlfs(sqlfs)->db));
+    r = sql_step(stmt);
+    if (r != SQLITE_ROW)
+    {
+        if (r != SQLITE_DONE)
+            show_msg(stderr, "%s\n", sqlite3_errmsg(get_sqlfs(sqlfs)->db));
+        if (r == SQLITE_BUSY)
+        {
+            show_msg(stderr, "%s\n", sqlite3_errmsg(get_sqlfs(sqlfs)->db));
+            return r;
+        }
+    }
+    else
+        current_file_size = sqlite3_column_int64(stmt, 0);
+    sqlite3_reset(stmt);
+
+
     BEGIN
-    SQLITE3_PREPARE(get_sqlfs(sqlfs)->db, cmd1, -1, &stmt,  &tail);
+    SQLITE3_PREPARE(get_sqlfs(sqlfs)->db, createfile_cmd, -1, &stmt,  &tail);
     if (r != SQLITE_OK)
     {
         show_msg(stderr, "%s\n", sqlite3_errmsg(get_sqlfs(sqlfs)->db));
@@ -1533,16 +1562,19 @@ static int set_value(sqlfs_t *sqlfs, const char *key, const key_value *value, si
         if (end == 0)
             end = value->size;
         block_no = begin / BLOCK_SIZE;
-        begin2 = block_no * BLOCK_SIZE; // 'begin' rounded to BLOCK_SIZE
-        end2 = end;
-        if (end2 > begin2 + BLOCK_SIZE)
-            end2 = begin2 + BLOCK_SIZE;
+        begin2 = block_no * BLOCK_SIZE; // 'begin' chopped to BLOCK_SIZE increments
 
+        if (end > begin2 + BLOCK_SIZE)
+            end2 = begin2 + BLOCK_SIZE; // the write spans multiple blocks
+        else
+            end2 = end; // the write fits in a single block
+
+        /* partial write in the first block */
         {
             size_t old_size = 0;
             r = get_value_block(sqlfs, key, tmp, block_no, &old_size);
             length = end2 - begin;
-            memcpy(tmp + (begin - begin2), value->data + begin, length);
+            memcpy(tmp + (begin - begin2), value->data, length);
             length = end2 - begin2;
             if (length < old_size)
                 length = old_size;
@@ -1550,6 +1582,8 @@ static int set_value(sqlfs_t *sqlfs, const char *key, const key_value *value, si
             block_no++;
             begin2 += BLOCK_SIZE;
         }
+
+        /* writing complete blocks in the middle of the write */
         for ( ; begin2 < end / BLOCK_SIZE * BLOCK_SIZE; begin2 += BLOCK_SIZE, block_no++)
         {
 
@@ -1558,6 +1592,7 @@ static int set_value(sqlfs_t *sqlfs, const char *key, const key_value *value, si
                 break;
         }
 
+        /* partial block at the end of the write */
         if (begin2 < end)
         {
 
@@ -1577,14 +1612,14 @@ static int set_value(sqlfs_t *sqlfs, const char *key, const key_value *value, si
 
         free(tmp);
     }
-    SQLITE3_PREPARE(get_sqlfs(sqlfs)->db, cmd2, -1, &stmt,  &tail);
+    SQLITE3_PREPARE(get_sqlfs(sqlfs)->db, updatesize_cmd, -1, &stmt,  &tail);
     if (r != SQLITE_OK)
     {
         show_msg(stderr, "%s\n", sqlite3_errmsg(get_sqlfs(sqlfs)->db));
         COMPLETE(1)
         return r;
     }
-    sqlite3_bind_int64(stmt, 1, value->size);
+    sqlite3_bind_int64(stmt, 1, (end > current_file_size) ? end : current_file_size);
     sqlite3_bind_text(stmt, 2, key, -1, SQLITE_STATIC);
     r = sql_step(stmt);
     sqlite3_reset(stmt);

@@ -216,7 +216,7 @@ int sqlfs_get_value(sqlfs_t *sqlfs, const char *key, key_value *value,
 
 int sqlfs_set_value(sqlfs_t *sqlfs, const char *key, const key_value *value, 
     size_t begin,  size_t end);
-    writes contents of a file contained in a range
+    writes contents of value to a file within the specified range
     (between offsets begin and end)
 
 int sqlfs_get_attr(sqlfs_t *sqlfs, const char *key, key_attr *attr);

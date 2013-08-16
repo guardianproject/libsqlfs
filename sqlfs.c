@@ -1499,7 +1499,7 @@ static int set_value(sqlfs_t *sqlfs, const char *key, const key_value *value, si
     const char *tail;
     sqlite3_stmt *stmt;
     size_t begin2, end2, length, i;
-    size_t current_file_size = 0;
+    size_t current_file_size = 0, position_in_value = 0;
     int block_no;
     static const char *selectsize = "select size from meta_data where key = :key ";
     static const char *createfile_cmd = "insert or ignore into meta_data (key) VALUES ( :key ) ; ";
@@ -1573,8 +1573,8 @@ static int set_value(sqlfs_t *sqlfs, const char *key, const key_value *value, si
         {
             size_t old_size = 0;
             r = get_value_block(sqlfs, key, tmp, block_no, &old_size);
-            length = end2 - begin;
-            memcpy(tmp + (begin - begin2), value->data, length);
+            position_in_value = end2 - begin;
+            memcpy(tmp + (begin - begin2), value->data, position_in_value);
             length = end2 - begin2;
             if (length < old_size)
                 length = old_size;
@@ -1584,12 +1584,15 @@ static int set_value(sqlfs_t *sqlfs, const char *key, const key_value *value, si
         }
 
         /* writing complete blocks in the middle of the write */
-        for ( ; begin2 < end / BLOCK_SIZE * BLOCK_SIZE; begin2 += BLOCK_SIZE, block_no++)
+        while (begin2 < end / BLOCK_SIZE * BLOCK_SIZE) // this chops to BLOCK_SIZE increments
         {
-
-            r = set_value_block(sqlfs, key, value->data + BLOCK_SIZE * block_no, block_no, BLOCK_SIZE);
+            r = set_value_block(sqlfs, key, value->data + position_in_value, block_no, BLOCK_SIZE);
             if (r != SQLITE_OK)
                 break;
+
+            block_no++;
+            begin2 += BLOCK_SIZE;
+            position_in_value += BLOCK_SIZE;
         }
 
         /* partial block at the end of the write */
@@ -1603,7 +1606,7 @@ static int set_value(sqlfs_t *sqlfs, const char *key, const key_value *value, si
             r = get_value_block(sqlfs, key, tmp, block_no, &i);
             if (r != SQLITE_OK)
                 i = 0;
-            memcpy(tmp, value->data + begin2, end - begin2 );
+            memcpy(tmp, value->data + position_in_value, end - begin2 );
             if (i < (int)(end - begin2))
                 i = (int)(end - begin2);
 
@@ -2937,7 +2940,7 @@ int sqlfs_proc_write(sqlfs_t *sqlfs, const char *path, const char *buf, size_t s
  /* we can't just use buf because we need to include any empty space between
  * the end of the existing file and the offset in the buffer that we send to
  * set_value() */
-        value.data = calloc(value.size, sizeof(char));  // TODO where is this freed?
+        value.data = calloc(value.size, sizeof(char));
         if ((size_t) offset > existing_size)
         { /* fill in the hole */
             write_begin = existing_size;
@@ -2952,7 +2955,6 @@ int sqlfs_proc_write(sqlfs_t *sqlfs, const char *path, const char *buf, size_t s
             write_end = size;
             memcpy(value.data, buf, value.size);
         }
-        printf("value.data: %s\n", value.data);
         result = value.size;
         printf("begin %d   end %d  value.size %d\n", write_begin, write_end, value.size);
         r = set_value(get_sqlfs(sqlfs), path, &value, write_begin, write_end);

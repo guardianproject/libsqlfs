@@ -28,7 +28,6 @@ static int fill_dir(void *buf, const char *name, const struct stat *statp, off_t
 
 int main(int argc, char *argv[])
 {
-    int n;
     struct stat s;
     sqlfs_t *sqlfs = 0;
     const char *db;

@@ -94,7 +94,6 @@ static __inline__ int sql_step(sqlite3_stmt *stmt)
     }
 
     return r;
-
 }
 
 static __inline__ sqlfs_t *get_sqlfs(sqlfs_t *p)
@@ -182,7 +181,6 @@ void clean_value(key_value *value)
 
 static int begin_transaction(sqlfs_t *sqlfs)
 {
-    int i;
     /* begin immediate will immediately obtain a reserved lock on the
      * database but will allow readers to proceed.
     */
@@ -194,8 +192,7 @@ static int begin_transaction(sqlfs_t *sqlfs)
 
     if (get_sqlfs(sqlfs)->transaction_level == 0)
     {
-        /*assert(sqlite3_get_autocommit(get_sqlfs(sqlfs)->db) != 0);*/
-
+        int i;
         SQLITE3_PREPARE(get_sqlfs(sqlfs)->db, cmd, -1,  &stmt,  &tail);
         for (i = 0; i < 10; i++)
         {
@@ -223,7 +220,6 @@ static int begin_transaction(sqlfs_t *sqlfs)
 
 static int commit_transaction(sqlfs_t *sqlfs, int r0)
 {
-    int i;
     /* commit if r0 is 1
        rollback if r0 is 0
     */
@@ -250,6 +246,7 @@ static int commit_transaction(sqlfs_t *sqlfs, int r0)
 
     if ((get_sqlfs(sqlfs)->transaction_level - 1 == 0) && (get_sqlfs(sqlfs)->in_transaction))
     {
+        int i;
         for (i = 0; i < 10; i++)
         {
             r = sqlite3_step(stmt);
@@ -277,7 +274,6 @@ static int commit_transaction(sqlfs_t *sqlfs, int r0)
 
 static int break_transaction(sqlfs_t *sqlfs, int r0)
 {
-    int i;
     /* commit if r0 is 1
        rollback if r0 is 0
     */
@@ -297,7 +293,6 @@ static int break_transaction(sqlfs_t *sqlfs, int r0)
     SQLITE3_PREPARE(get_sqlfs(sqlfs)->db, cmd2, -1,  &stmt,  &tail);
     stmt2 = stmt;
 
-
     if (r0 != 0)
         stmt = stmt1;
     else
@@ -305,6 +300,7 @@ static int break_transaction(sqlfs_t *sqlfs, int r0)
 
     if (get_sqlfs(sqlfs)->in_transaction)
     {
+        int i;
         for (i = 0; i < 10; i++)
         {
             r = sqlite3_step(stmt);
@@ -363,7 +359,6 @@ static __inline__ int get_current_max_inode(sqlfs_t *sqlfs)
         result = sqlite3_column_int(stmt, 0);
     sqlite3_reset(stmt);
     return result;
-
 }
 
 
@@ -404,7 +399,6 @@ static int key_exists(sqlfs_t *sqlfs, const char *key, size_t *size)
     sqlite3_reset(stmt);
     return result;
 
-
 }
 
 #undef INDEX
@@ -444,7 +438,6 @@ static int key_is_dir(sqlfs_t *sqlfs, const char *key)
     }
     sqlite3_reset(stmt);
     return result;
-
 
 }
 
@@ -828,7 +821,6 @@ static int rename_key(sqlfs_t *sqlfs, const char *old, const char *new)
     COMPLETE(1);
     return r;
 
-
 }
 
 #undef INDEX
@@ -900,10 +892,10 @@ static int set_attr(sqlfs_t *sqlfs, const char *key, const key_attr *attr);
 
 static int ensure_existence(sqlfs_t *sqlfs, const char *key, const char *type)
 {
-    int r;
-    key_attr attr = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
     if (key_exists(sqlfs, key, 0) == 0)
     {
+        int r;
+        key_attr attr = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
         attr.path = strdup(key);
         attr.type = strdup(type);
         attr.mode = get_sqlfs(sqlfs)->default_mode; /* to use default */
@@ -921,23 +913,18 @@ static int ensure_existence(sqlfs_t *sqlfs, const char *key, const char *type)
         {
             clean_attr(&attr);
             return 0;
-
         }
         clean_attr(&attr);
         return 2;
     }
-
     return 1;
-
 }
+
 #if 0
 static int ensure_parent_existence(sqlfs_t *sqlfs, const char *key)
 {
     int r;
-
-
     char *parent = calloc(strlen(key) + 2, sizeof(char));
-
     char *t;
     assert(parent);
 
@@ -945,10 +932,7 @@ static int ensure_parent_existence(sqlfs_t *sqlfs, const char *key)
     remove_tail_slash(parent);
     t = strrchr(parent, '/');
     if (t)
-    {
-
         *t = 0;
-    }
 
     if (*parent == 0)
     {
@@ -964,7 +948,6 @@ static int ensure_parent_existence(sqlfs_t *sqlfs, const char *key)
 
 static int get_parent_path(const char *path, char buf[PATH_MAX])
 {
-
     char *s;
     if ((path[0] == '/') && (path[1] == 0))
     {
@@ -983,7 +966,6 @@ static int get_parent_path(const char *path, char buf[PATH_MAX])
     else
         s[0] = 0;
     return SQLITE_OK;
-
 }
 
 
@@ -1034,7 +1016,6 @@ static int get_permission_data(sqlfs_t *sqlfs, const char *key, gid_t *gid, uid_
     sqlite3_reset(stmt);
     key_accessed(sqlfs, key);
     return r;
-
 }
 
 static int get_parent_permission_data(sqlfs_t *sqlfs, const char *key, gid_t *gid, uid_t *uid, mode_t *mode)
@@ -1103,7 +1084,6 @@ static int get_attr(sqlfs_t *sqlfs, const char *key, key_attr *attr)
     sqlite3_reset(stmt);
     key_accessed(sqlfs, key);
     return r;
-
 }
 
 
@@ -1178,7 +1158,6 @@ static int set_attr(sqlfs_t *sqlfs, const char *key, const key_attr *attr)
     /*ensure_parent_existence(sqlfs, key);*/
     COMPLETE(1);
     return r;
-
 }
 
 
@@ -1259,7 +1238,6 @@ static int get_value_block(sqlfs_t *sqlfs, const char *key, char *data, int bloc
     sqlite3_reset(stmt);
 
     return r;
-
 }
 
 
@@ -1354,7 +1332,6 @@ static int set_value_block(sqlfs_t *sqlfs, const char *key, const char *data, in
 
     COMPLETE(1);
     return r;
-
 }
 
 
@@ -1370,7 +1347,6 @@ static int get_value(sqlfs_t *sqlfs, const char *key, key_value *value, size_t b
     sqlite3_stmt *stmt;
     static const char *cmd = "select size from meta_data where key = :key; ";
     size_t size = 0;
-    int block_no;
 
     clean_value(value);
     BEGIN;
@@ -1397,11 +1373,10 @@ static int get_value(sqlfs_t *sqlfs, const char *key, key_value *value, size_t b
     if (r == SQLITE_OK)
     {
         if ((end == 0) || (end > size))
-        {
             end = size;
-        }
         if (begin < end)
         {
+            int block_no;
             value->size = size;
             value->data = malloc(value->size);
             assert(value->data);
@@ -1416,14 +1391,13 @@ static int get_value(sqlfs_t *sqlfs, const char *key, key_value *value, size_t b
             }
         }
         else
-            r = SQLITE_NOTFOUND  ;
+            r = SQLITE_NOTFOUND;
     }
 
     sqlite3_reset(stmt);
     key_accessed(sqlfs, key);
     COMPLETE(1);
     return r;
-
 }
 
 
@@ -1436,9 +1410,8 @@ static int set_value(sqlfs_t *sqlfs, const char *key, const key_value *value, si
     int r;
     const char *tail;
     sqlite3_stmt *stmt;
-    size_t begin2, end2, length, i;
-    size_t current_file_size = 0, position_in_value = 0;
-    int block_no;
+    size_t i;
+    size_t current_file_size = 0;
     static const char *selectsize = "select size from meta_data where key = :key ";
     static const char *createfile_cmd = "insert or ignore into meta_data (key) VALUES ( :key ) ; ";
     static const char *updatesize_cmd = "update meta_data set size = :size where key =  :key  ; ";
@@ -1493,8 +1466,9 @@ static int set_value(sqlfs_t *sqlfs, const char *key, const key_value *value, si
 #define INDEX 27
 
 
-
     {
+        int block_no;
+        size_t begin2, end2, length, position_in_value = 0;
         tmp = calloc( BLOCK_SIZE, sizeof(char));
 
         if (end == 0)
@@ -1553,6 +1527,7 @@ static int set_value(sqlfs_t *sqlfs, const char *key, const key_value *value, si
 
         free(tmp);
     }
+
     SQLITE3_PREPARE(get_sqlfs(sqlfs)->db, updatesize_cmd, -1, &stmt,  &tail);
     if (r != SQLITE_OK)
     {
@@ -1570,7 +1545,6 @@ static int set_value(sqlfs_t *sqlfs, const char *key, const key_value *value, si
     /*ensure_parent_existence(sqlfs, key);*/
     COMPLETE(1);
     return r;
-
 }
 
 
@@ -1673,7 +1647,6 @@ static int key_shorten_value(sqlfs_t *sqlfs, const char *key, size_t new_length)
     /*ensure_parent_existence(sqlfs, key);*/
     COMPLETE(1);
     return r;
-
 }
 
 static int check_parent_access(sqlfs_t *sqlfs, const char *path)
@@ -1785,12 +1758,12 @@ int sqlfs_proc_getattr(sqlfs_t *sqlfs, const char *path, struct stat *stbuf)
 
 static int gid_in_supp_groups(gid_t gid)
 {
-    int n, num_groups = getgroups(0, 0);
+    int num_groups = getgroups(0, 0);
     int r = 0;
     if (num_groups)
     {
         gid_t *gids = malloc(sizeof(gids[0]) * num_groups);
-        n = getgroups(num_groups, gids);
+        int n = getgroups(num_groups, gids);
 
         assert(n == num_groups);
         for (n = 0; n < num_groups; n++)
@@ -1810,7 +1783,7 @@ static int gid_in_supp_groups(gid_t gid)
 int sqlfs_proc_access(sqlfs_t *sqlfs, const char *path, int mask)
 {
 
-    int i, r = SQLITE_OK, result = 0;
+    int r = SQLITE_OK, result = 0;
 #ifdef HAVE_LIBFUSE
     gid_t gid = getegid();
     uid_t uid = geteuid();
@@ -1826,7 +1799,7 @@ int sqlfs_proc_access(sqlfs_t *sqlfs, const char *path, int mask)
 
     if (uid == 0) /* root user so everything is granted */
     {
-        i = key_exists(sqlfs, path, 0);
+        int i = key_exists(sqlfs, path, 0);
         if (i == 0)
             result = -ENOENT;
         else if (i == 2)
@@ -2123,7 +2096,7 @@ int sqlfs_proc_mkdir(sqlfs_t *sqlfs, const char *path, mode_t mode)
 
 int sqlfs_proc_unlink(sqlfs_t *sqlfs, const char *path)
 {
-    int i, r, result = 0;
+    int i, result = 0;
     BEGIN;
     CHECK_PARENT_WRITE(path);
 
@@ -2134,14 +2107,11 @@ int sqlfs_proc_unlink(sqlfs_t *sqlfs, const char *path)
         result = -EBUSY;
 
     if (key_is_dir(get_sqlfs(sqlfs), path))
-    {
         result = -EISDIR;
-    }
-
 
     if (result == 0)
     {
-        r = remove_key(get_sqlfs(sqlfs), path);
+        int r = remove_key(get_sqlfs(sqlfs), path);
         if (r == SQLITE_BUSY)
             result = -EBUSY;
         else if (r != SQLITE_OK)
@@ -2153,7 +2123,7 @@ int sqlfs_proc_unlink(sqlfs_t *sqlfs, const char *path)
 
 int sqlfs_proc_rmdir(sqlfs_t *sqlfs, const char *path)
 {
-    int r, result = 0;
+    int result = 0;
     BEGIN;
     CHECK_PARENT_WRITE(path);
 
@@ -2163,7 +2133,7 @@ int sqlfs_proc_rmdir(sqlfs_t *sqlfs, const char *path)
     }
     else
     {
-        r = remove_key(get_sqlfs(sqlfs), path);
+        int r = remove_key(get_sqlfs(sqlfs), path);
         if (r != SQLITE_OK)
             result = -EIO;
     }
@@ -2223,7 +2193,6 @@ int sqlfs_proc_symlink(sqlfs_t *sqlfs, const char *path, const char *to)
     clean_value(&value);
     COMPLETE(1);
     return result;
-
 }
 
 static int rename_dir_children(sqlfs_t *sqlfs, const char *old, const char *new)
@@ -2405,7 +2374,6 @@ int sqlfs_proc_link(sqlfs_t *sqlfs, const char *from, const char *to)
 {
     /* hard link not supported, not allowed */
     return - EACCES;
-
 }
 
 int sqlfs_proc_chmod(sqlfs_t *sqlfs, const char *path, mode_t mode)
@@ -2492,7 +2460,6 @@ int sqlfs_proc_chown(sqlfs_t *sqlfs, const char *path, uid_t uid, gid_t gid)
     clean_attr(&attr);
     COMPLETE(1);
     return result;
-
 }
 
 int sqlfs_proc_truncate(sqlfs_t *sqlfs, const char *path, off_t size)
@@ -2584,7 +2551,6 @@ int sqlfs_proc_utime(sqlfs_t *sqlfs, const char *path, struct utimbuf *buf)
     clean_attr(&attr);
     COMPLETE(1);
     return result;
-
 }
 
 int sqlfs_proc_create(sqlfs_t *sqlfs, const char *path, mode_t mode, struct fuse_file_info *fi)
@@ -2642,7 +2608,6 @@ int sqlfs_proc_create(sqlfs_t *sqlfs, const char *path, mode_t mode, struct fuse
     clean_attr(&attr);
     COMPLETE(1);
     return result;
-
 }
 
 int sqlfs_proc_open(sqlfs_t *sqlfs, const char *path, struct fuse_file_info *fi)
@@ -2790,7 +2755,7 @@ int sqlfs_proc_write(sqlfs_t *sqlfs, const char *path, const char *buf, size_t s
                      struct fuse_file_info *fi)
 {
     int i, r, result = 0;
-    size_t write_begin, write_end, existing_size = 0;
+    size_t existing_size = 0;
     key_value value = { 0, 0 };
 
     BEGIN;
@@ -2846,6 +2811,7 @@ int sqlfs_proc_write(sqlfs_t *sqlfs, const char *path, const char *buf, size_t s
 
     if (result == 0)
     {
+        size_t write_begin, write_end;
         if (fi && (fi->flags & O_APPEND))
         {/* handle O_APPEND'ing to an existing file. When O_APPEND is set,
             ignore offset, since that's what POSIX does in a similar situation.
@@ -2944,7 +2910,6 @@ int sqlfs_proc_setxattr(sqlfs_t *sqlfs, const char *path, const char *name, cons
                         size_t size, int flags)
 {
     return -ENOSYS;
-
 }
 
 int sqlfs_proc_getxattr(sqlfs_t *sqlfs, const char path, const char *name, char *value, size_t size)
@@ -3212,7 +3177,6 @@ int sqlfs_is_dir(sqlfs_t *sqlfs, const char *key)
     return key_is_dir(sqlfs, key);
 }
 
-
 static int create_db_table(sqlfs_t *sqlfs)
 {
     /* ensure tables are created if not existing already
@@ -3230,8 +3194,6 @@ static int create_db_table(sqlfs_t *sqlfs)
     sqlite3_exec(get_sqlfs(sqlfs)->db, cmd3, NULL, NULL, NULL);
     return 1;
 }
-
-
 
 static void * sqlfs_t_init(const char *db_file, const char *db_key)
 {
@@ -3305,23 +3267,19 @@ static void * sqlfs_t_init(const char *db_file, const char *db_key)
     return (void *) sql_fs;
 }
 
-
-
 static void sqlfs_t_finalize(void *arg)
 {
-    int i;
     sqlfs_t *sql_fs = (sqlfs_t *) arg;
     if (sql_fs)
     {
+        int i;
         for (i = 0; i < (int)(sizeof(sql_fs->stmts) / sizeof(sql_fs->stmts[0])); i++)
-        {
             if (sql_fs->stmts[i])
                 sqlite3_finalize(sql_fs->stmts[i]);
-        }
+
         sqlite3_close(sql_fs->db);
         free(sql_fs);
     }
-
 }
 
 int sqlfs_open(const char *db_file, sqlfs_t **sqlfs)

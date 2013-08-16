@@ -26,6 +26,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <sys/time.h>
 #include "sqlfs.h"
 
+#define BLOCK_SIZE 8192
+
 char *data = "this is a string";
 
 /* support functions -------------------------------------------------------- */
@@ -302,6 +304,47 @@ void test_write_seek_write(sqlfs_t *sqlfs)
     printf("passed\n");
 }
 
+static void wbb_helper(sqlfs_t *sqlfs, int testsize)
+{
+    int rc;
+    char testfilename[PATH_MAX];
+    randomfilename(testfilename, PATH_MAX, "skip_write_boundaries");
+    char buf[testsize+1];
+    struct stat sb;
+    struct fuse_file_info fi = { 0 };
+    fi.flags |= O_RDWR | O_CREAT;
+
+    char *data = calloc(testsize, sizeof(char));
+    int i;
+    for (i=0; i<testsize; ++i)
+        data[i] = (i % 90) + 32;
+
+    rc = sqlfs_proc_write(sqlfs, testfilename, data, testsize, 0, &fi);
+    assert(rc);
+    sqlfs_proc_getattr(sqlfs, testfilename, &sb);
+    assert(sb.st_size == testsize);
+
+    i = sqlfs_proc_read(sqlfs, testfilename, buf, testsize, 0, &fi);
+    assert(i == testsize);
+    buf[testsize] = 0;
+    assert(!strcmp(buf, data));
+    free(data);
+}
+
+void test_write_block_boundaries(sqlfs_t *sqlfs)
+{
+    printf("Testing write block boundaries...");
+    int i;
+    for(i=1;i<5;++i)
+    {
+        wbb_helper(sqlfs, i*BLOCK_SIZE);
+        wbb_helper(sqlfs, i*BLOCK_SIZE-1);
+        wbb_helper(sqlfs, i*BLOCK_SIZE+1);
+    }
+    printf("passed\n");
+}
+
+
 void test_o_append_existing_file(sqlfs_t *sqlfs)
 {
     printf("Testing opening existing file O_APPEND and writing...");
@@ -344,6 +387,7 @@ void run_standard_tests(sqlfs_t* sqlfs)
     test_rmdir(sqlfs);
     test_create_file_with_small_string(sqlfs);
     test_write_seek_write(sqlfs);
+    test_write_block_boundaries(sqlfs);
     test_read_bigger_than_buffer(sqlfs);
     test_o_append_existing_file(sqlfs);
 

@@ -2496,28 +2496,26 @@ int sqlfs_proc_chown(sqlfs_t *sqlfs, const char *path, uid_t uid, gid_t gid)
 
 int sqlfs_proc_truncate(sqlfs_t *sqlfs, const char *path, off_t size)
 {
-    int r, result = 0;
-    char *data;
+    int i, r, result = 0;
+    size_t existing_size = 0;
     key_value value = { 0, 0 };
-
 
     BEGIN;
     CHECK_PARENT_PATH(path);
     CHECK_WRITE(path);
-    r = get_value(get_sqlfs(sqlfs), path, &value, 0, 0);
 
-    if (r == SQLITE_NOTFOUND)
-        r = 0;
-    else if (r != SQLITE_OK)
+    i = key_exists(sqlfs, path, &existing_size);
+    if (i == 0)
+        result = -ENOENT;
+    else if (i == 2)
+        result = -EBUSY;
+    if (i == 0 || i == 2)
     {
         COMPLETE(1);
-        clean_value(&value);
-        if (r == SQLITE_BUSY)
-            return -EBUSY;
-        return -ENOENT;
+        return result;
     }
 
-    if (value.size > (size_t) size)
+    if (existing_size > (size_t) size)
     {
         value.size = size;
         r = key_shorten_value(get_sqlfs(sqlfs), path, value.size);
@@ -2526,34 +2524,23 @@ int sqlfs_proc_truncate(sqlfs_t *sqlfs, const char *path, off_t size)
         else if (r != SQLITE_OK)
             result = -EIO;
     }
-    else if (value.size < (size_t) size)
+    else if (existing_size < (size_t) size)
     {
-        data = realloc(value.data, size);
-        if (data == NULL)
+        value.size = size - existing_size;
+        value.data = calloc(value.size, sizeof(char));
+        memset(value.data, 0, value.size);
+        r = set_value(get_sqlfs(sqlfs), path, &value, 0, 0);
+        if (r != SQLITE_OK)
         {
-            result = -EINVAL;
-        }
-        else
-        {
-            memset(data + value.size, 0, size - value.size);
-            value.data = data;
-            value.size = size;
-        }
-        if (result == 0)
-        {
-            r = set_value(get_sqlfs(sqlfs), path, &value, 0, 0);
-            if (r != SQLITE_OK)
-            {
-                if (r == SQLITE_BUSY)
-                    result = -EBUSY;
-                else result = -EACCES;
-            }
+            if (r == SQLITE_BUSY)
+                result = -EBUSY;
+            else
+                result = -EACCES;
         }
     }
     clean_value(&value);
     COMPLETE(1);
     return result;
-
 }
 
 int sqlfs_proc_utime(sqlfs_t *sqlfs, const char *path, struct utimbuf *buf)

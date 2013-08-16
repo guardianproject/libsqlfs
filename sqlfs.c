@@ -845,11 +845,9 @@ static int get_dir_children_num(sqlfs_t *sqlfs, const char *path)
     char tmp[PATH_MAX];
     sqlite3_stmt *stmt;
 
-    if ((i = key_is_dir(sqlfs, path)), (i == 0))
-    {
-
+    i = key_is_dir(sqlfs, path);
+    if (i == 0)
         return 0;
-    }
     else if (i == 2)
         return -EBUSY;
 
@@ -1592,7 +1590,8 @@ static int key_shorten_value(sqlfs_t *sqlfs, const char *key, size_t new_length)
     static const char *cmd2 = "update meta_data set size = :size where key =  :key  ; ";
 
     BEGIN;
-    if ((i = key_exists(sqlfs, key, &l)), (i == 0))
+    i = key_exists(sqlfs, key, &l);
+    if (i == 0)
     {
         assert(0);
         show_msg(stderr, "Illegal truncateion on non-existence key %s\n", key);
@@ -1827,7 +1826,8 @@ int sqlfs_proc_access(sqlfs_t *sqlfs, const char *path, int mask)
 
     if (uid == 0) /* root user so everything is granted */
     {
-        if ((i = key_exists(sqlfs, path, 0)), !i)
+        i = key_exists(sqlfs, path, 0);
+        if (i == 0)
             result = -ENOENT;
         else if (i == 2)
             result = -EBUSY;
@@ -1972,7 +1972,8 @@ int sqlfs_proc_readdir(sqlfs_t *sqlfs, const char *path, void *buf, fuse_fill_di
     CHECK_PARENT_PATH(path);
     CHECK_DIR_READ(path);
 
-    if ((i = key_is_dir(get_sqlfs(sqlfs), path)), !i)
+    i = key_is_dir(get_sqlfs(sqlfs), path);
+    if (i == 0)
     {
         COMPLETE(1);
         return -ENOTDIR;
@@ -2126,7 +2127,8 @@ int sqlfs_proc_unlink(sqlfs_t *sqlfs, const char *path)
     BEGIN;
     CHECK_PARENT_WRITE(path);
 
-    if ((i = key_exists(get_sqlfs(sqlfs), path, 0)), (i == 0))
+    i = key_exists(get_sqlfs(sqlfs), path, 0);
+    if (i == 0)
         result = -ENOENT;
     else if (i == 2)
         result = -EBUSY;
@@ -2237,7 +2239,8 @@ static int rename_dir_children(sqlfs_t *sqlfs, const char *old, const char *new)
     CHECK_PARENT_PATH(old);
     CHECK_DIR_READ(old);
 
-    if ((i = key_is_dir(get_sqlfs(sqlfs), old)), !i)
+    i = key_is_dir(get_sqlfs(sqlfs), old);
+    if (i == 0)
     {
         COMPLETE(1);
         return -ENOTDIR;
@@ -2276,16 +2279,13 @@ static int rename_dir_children(sqlfs_t *sqlfs, const char *old, const char *new)
                 if (*child_filename == 0) /* special case when dir the root directory */
                     continue;
 
-                /*printf("\n\tfound: %s, %s\n", child_path, child_filename);*/
-
                 char new_path[PATH_MAX];
                 strncpy(new_path, rpath, PATH_MAX);
                 strncat(new_path, "/", 1);
                 strncat(new_path, child_filename, PATH_MAX - strlen(new_path) - 1);
 
-                /*printf("\tnew path: %s\n", new_path);*/
-
-                if ((i = key_exists(get_sqlfs(sqlfs), new_path, 0)), (i == 1))
+                i = key_exists(get_sqlfs(sqlfs), new_path, 0);
+                if (i == 1)
                 {
                     r = remove_key(get_sqlfs(sqlfs), new_path);
                     if (r != SQLITE_OK)
@@ -2335,7 +2335,8 @@ int sqlfs_proc_rename(sqlfs_t *sqlfs, const char *from, const char *to)
     CHECK_PARENT_WRITE(from);
     CHECK_PARENT_WRITE(to);
 
-    if ((i = key_exists(get_sqlfs(sqlfs), from, 0)), !i)
+    i = key_exists(get_sqlfs(sqlfs), from, 0);
+    if (i == 0)
     {
         COMPLETE(1);
         return -EIO;
@@ -2371,7 +2372,8 @@ int sqlfs_proc_rename(sqlfs_t *sqlfs, const char *from, const char *to)
             result = rename_dir_children(get_sqlfs(sqlfs), from, to);
     }
 
-    if ((i = key_exists(get_sqlfs(sqlfs), to, 0)), (i == 1))
+    i = key_exists(get_sqlfs(sqlfs), to, 0);
+    if (i == 1)
     {
         r = remove_key(get_sqlfs(sqlfs), to);
         if (r != SQLITE_OK)
@@ -2756,7 +2758,8 @@ int sqlfs_proc_read(sqlfs_t *sqlfs, const char *path, char *buf, size_t size, of
     CHECK_PARENT_PATH(path);
     CHECK_READ(path);
 
-    if (i = key_is_dir(get_sqlfs(sqlfs), path), (i == 1))
+    i = key_is_dir(get_sqlfs(sqlfs), path);
+    if (i == 1)
     {
         COMPLETE(1);
         return -EISDIR;
@@ -2804,7 +2807,8 @@ int sqlfs_proc_write(sqlfs_t *sqlfs, const char *path, const char *buf, size_t s
 
     BEGIN;
 
-    if (i = key_is_dir(get_sqlfs(sqlfs), path), (i == 1))
+    i = key_is_dir(get_sqlfs(sqlfs), path);
+    if (i == 1)
     {
         COMPLETE(1);
         return -EISDIR;
@@ -2977,7 +2981,8 @@ int sqlfs_del_tree(sqlfs_t *sqlfs, const char *key)
     CHECK_PARENT_WRITE(key);
     CHECK_DIR_WRITE(key);
 
-    if ((i = key_exists(get_sqlfs(sqlfs), key, 0)), (i == 0))
+    i = key_exists(get_sqlfs(sqlfs), key, 0);
+    if (i == 0)
         result = -ENOENT;
     else if (i == 2)
         result = -EBUSY;
@@ -3001,7 +3006,8 @@ int sqlfs_del_tree_with_exclusion(sqlfs_t *sqlfs, const char *key, const char *e
     CHECK_PARENT_WRITE(key);
     CHECK_DIR_WRITE(key);
 
-    if ((i = key_exists(get_sqlfs(sqlfs), key, 0)) == 0)
+    i = key_exists(get_sqlfs(sqlfs), key, 0);
+    if (i == 0)
         result = -ENOENT;
     else if (i == 2)
         result = -EBUSY;

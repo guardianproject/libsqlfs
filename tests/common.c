@@ -273,29 +273,32 @@ void test_write_seek_write(sqlfs_t *sqlfs)
 {
     printf("Testing write/seek/write...");
     char* testfilename = "/skipwrite";
-    char buf[200];
-    const int skip_offset = 100;
-    const char skip1[25] = "it was the best of times";
+    char buf[1000001];
+    int i, rc, skip_offset;
+    const char *skip1 = "it was the best of times";
     const int sz_skip1 = strlen(skip1);
+    const char *skip2 = "it was the worst of times";
+    const int sz_skip2 = strlen(skip2);
     struct stat sb;
     struct fuse_file_info fi = { 0 };
     fi.flags |= O_RDWR | O_CREAT;
-    int rc = sqlfs_proc_write(sqlfs, testfilename, skip1, sz_skip1, 0, &fi);
-    assert(rc);
-    const char skip2[26] = "it was the worst of times";
-    const int sz_skip2 = strlen(skip2);
-    rc = sqlfs_proc_write(sqlfs, testfilename, skip2, sz_skip2, skip_offset, &fi);
-    assert(rc);
-    sqlfs_proc_getattr(sqlfs, testfilename, &sb);
-    assert(sb.st_size == (skip_offset+sz_skip2));
-    int i = sqlfs_proc_read(sqlfs, testfilename, buf, sz_skip1, 0, &fi);
-    assert(i == sz_skip1);
-    buf[sz_skip1] = 0;
-    assert(!strcmp(buf, skip1));
-    i = sqlfs_proc_read(sqlfs, testfilename, buf, sz_skip2, skip_offset, &fi);
-    assert(i == sz_skip2);
-    buf[sz_skip2] = 0;
-    assert(!strcmp(buf, skip2));
+    for(skip_offset = 100; skip_offset < 1000001; skip_offset *= 100)
+    {
+        rc = sqlfs_proc_write(sqlfs, testfilename, skip1, sz_skip1, 0, &fi);
+        assert(rc);
+        rc = sqlfs_proc_write(sqlfs, testfilename, skip2, sz_skip2, skip_offset, &fi);
+        assert(rc);
+        sqlfs_proc_getattr(sqlfs, testfilename, &sb);
+        assert(sb.st_size == (skip_offset+sz_skip2));
+        i = sqlfs_proc_read(sqlfs, testfilename, buf, sz_skip1, 0, &fi);
+        assert(i == sz_skip1);
+        buf[sz_skip1] = 0;
+        assert(!strcmp(buf, skip1));
+        i = sqlfs_proc_read(sqlfs, testfilename, buf, sz_skip2, skip_offset, &fi);
+        assert(i == sz_skip2);
+        buf[sz_skip2] = 0;
+        assert(!strcmp(buf, skip2));
+    }
     printf("passed\n");
 }
 

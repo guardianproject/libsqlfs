@@ -24,35 +24,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  *****************************************************************************/
 
-/* the file system is stored in a SQLite table, with the following columns
-
-
-full key path      type     inode      uid      gid        mode   acl      attributes         atime  mtime ctime size  block_size
-(text)            (text)    (integer) (integer) (integer)   (integer)   (text)    (text)        (integer) ...
-
-the key path must start with "/" and is case sensitive
-
-the type can be one of these:  "int", "double",  "string", "dir", "sym link" and "blob"
-
-
-for Blobs we will divide them into 8k pieces, each occupying an BLOB object in database indexed by a block number
-which starts from 0
-
-created by
-
- CREATE TABLE meta_data(key text, type text, inode integer, uid integer, gid integer, mode integer,  acl text, attribute text,
-    atime integer, mtime integer, ctime integer, size integer, block_size integer, primary key (key), unique(key)) ;
-
- CREATE TABLE value_data (key text, block_no integer, data_block blob, unique(key, block_no));
-
- create index meta_index on meta_data (key);
- create index value_index on value_data (key, block_no);
-
-
-*/
-
-/* currently permission control due to the current directory not implemented */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -206,29 +177,6 @@ void clean_value(key_value *value)
     free(value->data);
     memset(value, 0, sizeof(*value));
 }
-
-
-/* There were originally a few different locking techniques in the code,
- * some commented out, and really only one in use: the sqlite 'begin
- * exclusive'.  There was a pthread mutex lock below that is quite large
- * grained. Then in sqlfs_t_init, there was the sqlite3_busy_timeout(), which
- * was there to help ensure that the call to create "/" if it doesn't exist
- * doesn't fail.
- *
- * Originally, 'begin exclusive' was only used in LIBFUSE mode, and not in
- * standalone library mode, where 'begin' was used.  But we found it too
- * unreliable so we switched standalone mode to also use 'begin exclusive'.
- *
- * In order to fix locking issues but improve overall performance,
- * begin_transaction now obtains a reserved lock immediately. This will
- * reduce contention for write locks that was occuring with deferred
- * transactions, and performs much better than exclusive transactions with
- * immediate exclusive locking.
- *
- * https://www.sqlite.org/lockingv3.html
- * https://www.sqlite.org/lang_transaction.html
- * https://www.sqlite.org/c3ref/busy_handler.html
- */
 
 #undef INDEX
 #define INDEX 100

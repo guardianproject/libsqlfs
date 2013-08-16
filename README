@@ -7,6 +7,7 @@ Libsqlfs is free/open source software distributed under the GNU Lesser
 General Public License, version 2 or later versions as published by the Free
 Software Foundation.  See the file COPYING for the complete licensing terms.
 
+
 Introduction
 ============
 
@@ -119,38 +120,17 @@ The database file that it opens is currently hard-coded in fuse_sqlfs.c as
 /tmp/fsdata.  If you want to use a different database file, or provide a
 key to an encrypted file, then just edit fuse_sqlfs.c and rebuild.
 
-APIs
-====
+For a sample application showing the usage of libsqlfs, see the test
+programs in the tests/ directory.
 
-A libsqlfs session is represented by an object of type sqlfs_t.  All APIs
-require an explicit reference to a valid sqlfs_t.
 
-Each file is a "key" in the internal libsqlfs vocabulary.  File metadata are
-represented as objects of the sturct key_attr.  File contents are represented
-by the struct key_value. 
+API
+===
 
-File metadata are the normal POSIX file attributes as expected except an
-additional "type" which can not be visible via the normal file attribute
-functions.  The "type" is used to support the specific needs of the setting
-registry application and can be one of the following:
-
-Null
-Dir
-Integer (32-bit)
-Double (a C double)
-String (a C zero-terminated string)
-Sym_link (symbolic link)
-Bool  (a boolean)
-List (a Glib list of values)
-Blob (a binary object)
-
-Note all other file system primitives do not make use of the "type"; to them
-all files are blobs. At this point the "type" is meant for use by higher up
-application logic in applications using libsqlfs.
-
-Libsqlfs started as an FUSE module so it implements the primitives as
-defined by FUSE version 2.5.3.  Specifically, the following file system
-primitives are implemented:
+Libsqlfs started as an FUSE module so it implements the primitives as defined
+by FUSE version 2.5.3.  A libsqlfs session is represented by an object of type
+sqlfs_t.  All APIs require an explicit reference to a valid sqlfs_t.
+Specifically, the following file system primitives are implemented:
 
 
 int sqlfs_proc_getattr(sqlfs_t *, const char *path, struct stat *stbuf);
@@ -185,8 +165,6 @@ file or key paths must be absolute and start with a '/'.  Applications can
 provide their own logic for relative paths before passing the "normalized"
 absolute paths to these FUSE primitive routines.
 
-Extended attributes are not yet supported in this version.
-
 In addition, other APIs provide environment setup, support for
 transaction and convenience functions: 
 
@@ -204,7 +182,13 @@ int sqlfs_open_key(const char *db_file, const char *key, sqlfs_t **sqlfs);
 
 int sqlfs_close(sqlfs_t *);
     closes and frees a libsqlfs connection.
-    
+
+
+Low-level API
+=============
+
+You can operate on the filesystem on a level lower than the FUSE API with
+these functions:
 
 int sqlfs_del_tree(sqlfs_t *sqlfs, const char *key);
     deletes a whole subtree.
@@ -233,14 +217,92 @@ int sqlfs_begin_transaction(sqlfs_t *sqlfs);
     
 int sqlfs_complete_transaction(sqlfs_t *sqlfs, int i);
     ends a SQLite transaction
-    
-Note the transaction supports "levels"; that is, transaction calls can be
-nested and libsqlfs maintains an internal level count of the current
-transaction level.  The actual SQLite transaction are only started when the
-level goes above 0 and only ended when the level falls to zero.    
 
-For a sample application showing the usage of libsqlfs, see the test
-programs in the tests/ directory.
+
+Implementation
+==============
+
+The filesystem is implemented using the common pattern of blocks allocated to
+a file.  The file system is stored in a SQLite table, with the following
+columns:
+
+full key path | type | inode   | uid     | gid     | mode    | acl  | attributes | atime   | mtime   | ctime   | size    | block_size
+text          | text | integer | integer | integer | integer | text | text       | integer | integer | integer | integer | integer
+
+The key path must be an absolute path using "/" as the path separators.  The
+path is case sensitive.  The type of data associated with the key path can be
+one of these: "int", "double", "string", "dir", "sym link" and "blob".
+Generally, data is allocated as 8k blobs representing filesystem blocks.
+Using "int", "double" and "string" for a file's data should be avoided since
+its not generalizable.  Each block occupies an BLOB object in database indexed
+by a block number which starts from 0.
+
+The table rows are created using:
+
+ CREATE TABLE meta_data(key text, type text, inode integer, uid integer,
+                        gid integer, mode integer, acl text,
+                        attribute text, atime integer, mtime integer,
+                        ctime integer, size integer, block_size integer,
+                        primary key (key), unique(key));
+ CREATE TABLE value_data (key text, block_no integer, data_block blob, unique(key, block_no));
+ CREATE INDEX meta_index ON meta_data (key);
+ CREATE INDEX value_index ON value_data (key, block_no);
+
+SQL transactions are used throughout the code to improve efficiency.  Note the
+transaction supports "levels"; that is, transaction calls can be nested and
+libsqlfs maintains an internal level count of the current transaction level.
+The actual SQLite transaction are only started when the level goes above 0 and
+only ended when the level falls to zero.
+
+A libsqlfs session is represented by an object of type sqlfs_t.  All APIs
+require an explicit reference to a valid sqlfs_t. Each file is a "key" in the
+internal libsqlfs vocabulary.  File metadata are represented as objects of the
+sturct key_attr.  File contents are represented by the struct key_value.
+
+File metadata are the normal POSIX file attributes as expected except an
+additional "type" which can not be visible via the normal file attribute
+functions.  The "type" is used to support the specific needs of the setting
+registry application and can be one of the following:
+
+Null
+Dir
+Integer (32-bit)
+Double (a C double)
+String (a C zero-terminated string)
+Sym_link (symbolic link)
+Bool  (a boolean)
+List (a Glib list of values)
+Blob (a binary object)
+
+Note all other file system primitives do not make use of the "type"; to them
+all files are blobs. At this point the "type" is meant for use by higher up
+application logic in applications using libsqlfs.
+
+Some things are not currently implemented:
+
+* permission control due to the current directory
+* extended attributes
+
+In order to fix locking issues but improve overall performance,
+begin_transaction obtains a reserved lock immediately. This reduces contention
+for write locks that were occuring with deferred transactions, and performs
+much better than exclusive transactions with immediate exclusive locking.
+
+There were originally a few different locking techniques in the code,
+some commented out, and really only one in use: the sqlite 'begin
+exclusive'.  There was a pthread mutex lock below that is quite large
+grained. Then in sqlfs_t_init, there was the sqlite3_busy_timeout(), which
+was there to help ensure that the call to create "/" if it doesn't exist
+doesn't fail.
+
+Originally, 'begin exclusive' was only used in LIBFUSE mode, and not in
+standalone library mode, where 'begin' was used.  But we found it too
+unreliable so we switched standalone mode to also use 'begin exclusive'.
+
+ https://www.sqlite.org/lockingv3.html
+ https://www.sqlite.org/lang_transaction.html
+ https://www.sqlite.org/c3ref/busy_handler.html
+
 
 Tests
 =====
@@ -265,7 +327,7 @@ Supported Platforms
 
 To date, libsqlfs is tested on 32-bit i386, 64-bit amd64 and ARM (Android
 and Palm Treo 650 phones).  It runs on GNU/Linux (Debian, Ubuntu,
-Mint, and Fedora) and Android, and most likely and UNIX.
+Mint, and Fedora) and Android, and most likely any UNIX.
 
 Currently libsqlfs, when used as a library, has been tested on GNU/Linux
 (Debian, Mint, Ubuntu, Red Hat, and Fedora) although it should be usable on any
@@ -278,11 +340,13 @@ It should be possible to make it work on Mac OS X using fuse4x., and also
 FreeBSD or Solaris provided they have a FUSE that is compatible with the Linux
 FUSE.
 
+
 Supported Database
 ==================
 
 To date, only SQLite and SQLCipher are supported.  SQLCipher is a
 version of SQLite that provides page-by-page AES-256 encryption.
+
 
 Notes on the Code
 =================

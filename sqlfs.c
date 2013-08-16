@@ -171,7 +171,6 @@ void clean_attr(key_attr *attr)
     memset(attr, 0, sizeof(*attr));
 }
 
-
 void clean_value(key_value *value)
 {
     free(value->data);
@@ -2870,46 +2869,46 @@ int sqlfs_proc_write(sqlfs_t *sqlfs, const char *path, const char *buf, size_t s
         CHECK_PARENT_PATH(path)
         CHECK_WRITE(path)
     }
+
     if (result == 0)
     {
-        /* handle O_APPEND'ing to an existing file */
-        if (existing_size && fi && (fi->flags & O_APPEND))
-            offset = size;
-        /* handle writes that start after the end of the existing data  */
-        if ((size_t) offset > existing_size)
-        {
-            printf("\noffset > existing: %d %d %d %d \n",
-                   (int)value.size, (int)offset, (int)existing_size, (int)size);
-            value.size = offset - existing_size + size;
-            printf("value.size: %d \n\n", (int)value.size);
-        }
-        else
+        if (fi && (fi->flags & O_APPEND))
+        {/* handle O_APPEND'ing to an existing file. When O_APPEND is set,
+            ignore offset, since that's what POSIX does in a similar situation.
+            For more info: https://dev.guardianproject.info/issues/250 */
             value.size = size;
- /* we can't just use buf because we need to include any empty space between
- * the end of the existing file and the offset in the buffer that we send to
- * set_value() */
-        value.data = calloc(value.size, sizeof(char));
-        if ((size_t) offset > existing_size)
-        { /* fill in the hole */
+            value.data = (char*) buf;
+            write_begin = existing_size;
+            write_end = existing_size + size;
+        }
+        else if ((size_t) offset > existing_size)
+        { /* handle writes that start after the end of the existing data.
+            'buf' cannot be used directly with set_value() because the buffer
+            given to set_value() needs to include any empty space between the
+            end of the existing file and the offset */
+            value.size = offset - existing_size + size;
+            value.data = calloc(value.size, sizeof(char));
+            memset(value.data, 0, offset - existing_size);
+            memcpy(value.data + (offset - existing_size), buf, size);
             write_begin = existing_size;
             write_end = size + offset;
-            memset(value.data, 126, offset - existing_size); // TODO 126 should be 0
-            printf("offset - existing_size: %d\n", offset - existing_size);
-            memcpy(value.data + (offset - existing_size), buf, size);
         }
         else
         {
+            value.size = size;
+            value.data = (char*) buf;
             write_begin = offset;
-            write_end = size;
-            memcpy(value.data, buf, value.size);
+            write_end = value.size;
         }
-        result = value.size;
-        printf("begin %d   end %d  value.size %d\n", write_begin, write_end, value.size);
         r = set_value(get_sqlfs(sqlfs), path, &value, write_begin, write_end);
         if (r != SQLITE_OK)
             result = -EIO;
+        else
+            result = value.size;
+        if ( ! ((size_t) offset > existing_size))
+            value.data = 0; // make sure buf is not freed by clean_value()
+        clean_value(&value);
     }
-    clean_value(&value);
     COMPLETE(1)
     return result;
 }

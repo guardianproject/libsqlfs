@@ -2823,7 +2823,8 @@ int sqlfs_proc_write(sqlfs_t *sqlfs, const char *path, const char *buf, size_t s
     if ((fi->flags & (O_WRONLY | O_RDWR)) == 0)
         return - EBADF;*/
 
-    if ((i = key_exists(get_sqlfs(sqlfs), path, &existing_size) == 0), (i == 1))
+    i = key_exists(get_sqlfs(sqlfs), path, &existing_size);
+    if (i == 0)
     { // path to write to does not exist
         key_attr attr = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
         CHECK_PARENT_WRITE(path);

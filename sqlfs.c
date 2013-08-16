@@ -2281,6 +2281,7 @@ static int rename_dir_children(sqlfs_t *sqlfs, const char *old, const char *new)
 
                 char new_path[PATH_MAX];
                 strncpy(new_path, rpath, PATH_MAX);
+                new_path[PATH_MAX-2] = 0; // make sure there is a terminating null and room for "/"
                 strncat(new_path, "/", 1);
                 strncat(new_path, child_filename, PATH_MAX - strlen(new_path) - 1);
 

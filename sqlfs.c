@@ -147,7 +147,7 @@ static void show_msg(FILE *f, char *fmt, ...)
     va_start(ap, fmt);
     vsnprintf(buf, 1000, fmt, ap);
     va_end(ap);
-    __android_log_print(ANDROID_LOG_WARN, LOG_TAG, buf);
+    __android_log_print(ANDROID_LOG_WARN, LOG_TAG, "%s", buf);
 }
 #else
 static void show_msg(FILE *f, char *fmt, ...)

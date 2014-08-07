@@ -2827,10 +2827,12 @@ int sqlfs_proc_write(sqlfs_t *sqlfs, const char *path, const char *buf, size_t s
             write_end = existing_size + size;
         }
         else if ((size_t) offset > existing_size)
-        { /* handle writes that start after the end of the existing data.
-            'buf' cannot be used directly with set_value() because the buffer
-            given to set_value() needs to include any empty space between the
-            end of the existing file and the offset */
+        { /* handle writes that start after the end of the existing data.  'buf'
+             cannot be used directly with set_value() because the buffer given
+             to set_value() needs to include any empty space between the end of
+             the existing file and the offset. The return value needs to then be
+             set to the number of bytes of _data_ written, not the total number
+             of bytes written, which would also include that empty space. */
             value.size = offset - existing_size + size;
             value.data = calloc(value.size, sizeof(char));
             memset(value.data, 0, offset - existing_size);
@@ -2847,11 +2849,22 @@ int sqlfs_proc_write(sqlfs_t *sqlfs, const char *path, const char *buf, size_t s
         }
         r = set_value(get_sqlfs(sqlfs), path, &value, write_begin, write_end);
         if (r != SQLITE_OK)
+        {
             result = -EIO;
+        }
+        else if ((size_t) offset > existing_size)
+        {
+            // blank space was filled in, but there was only 'size' data
+            result = size;
+        }
         else
+        {
+            /* make sure 'buf' is not freed by clean_value(), since it
+             * was passed into this function and therefore should be
+             * freed outside of this function. */
+            value.data = 0;
             result = value.size;
-        if ( ! ((size_t) offset > existing_size))
-            value.data = 0; // make sure buf is not freed by clean_value()
+        }
         clean_value(&value);
     }
     COMPLETE(1);

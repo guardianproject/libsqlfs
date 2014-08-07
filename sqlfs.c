@@ -2838,7 +2838,7 @@ int sqlfs_proc_write(sqlfs_t *sqlfs, const char *path, const char *buf, size_t s
             value.size = size;
             value.data = (char*) buf;
             write_begin = offset;
-            write_end = value.size;
+            write_end = size + offset;
         }
         r = set_value(get_sqlfs(sqlfs), path, &value, write_begin, write_end);
         if (r != SQLITE_OK)

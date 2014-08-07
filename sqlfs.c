@@ -1472,7 +1472,7 @@ static int set_value(sqlfs_t *sqlfs, const char *key, const key_value *value, si
         tmp = calloc( BLOCK_SIZE, sizeof(char));
 
         if (end == 0)
-            end = value->size;
+            end = begin + value->size;
         block_no = begin / BLOCK_SIZE;
         blockbegin = block_no * BLOCK_SIZE; // 'begin' chopped to BLOCK_SIZE increments
 

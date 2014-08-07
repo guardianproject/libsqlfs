@@ -31,3 +31,6 @@ int main(int argc, char **argv)
 
     return sqlfs_fuse_main(argc, argv);
 }
+
+
+/* -*- mode: c; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4; c-file-style: "bsd"; -*- */

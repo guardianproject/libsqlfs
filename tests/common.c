@@ -480,3 +480,6 @@ void run_perf_tests(sqlfs_t *sqlfs, int testsize)
           testsize, testsize / size, size, TIMING(tstart,tstop));
     }
 }
+
+
+/* -*- mode: c; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4; c-file-style: "bsd"; -*- */

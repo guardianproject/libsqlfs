@@ -3438,32 +3438,32 @@ static struct fuse_operations sqlfs_op;
 int sqlfs_init(const char *db_file_name)
 {
 #ifdef HAVE_LIBFUSE
-    sqlfs_op.getattr	= sqlfs_op_getattr;
-    sqlfs_op.access	= sqlfs_op_access;
-    sqlfs_op.readlink	= sqlfs_op_readlink;
-    sqlfs_op.readdir	= sqlfs_op_readdir;
-    sqlfs_op.mknod	= sqlfs_op_mknod;
-    sqlfs_op.mkdir	= sqlfs_op_mkdir;
-    sqlfs_op.symlink	= sqlfs_op_symlink;
-    sqlfs_op.unlink	= sqlfs_op_unlink;
-    sqlfs_op.rmdir	= sqlfs_op_rmdir;
-    sqlfs_op.rename	= sqlfs_op_rename;
-    sqlfs_op.link	= sqlfs_op_link;
-    sqlfs_op.chmod	= sqlfs_op_chmod;
-    sqlfs_op.chown	= sqlfs_op_chown;
-    sqlfs_op.truncate	= sqlfs_op_truncate;
-    sqlfs_op.utime	= sqlfs_op_utime;
-    sqlfs_op.open	= sqlfs_op_open;
-    sqlfs_op.create	= sqlfs_op_create;
-    sqlfs_op.read	= sqlfs_op_read;
-    sqlfs_op.write	= sqlfs_op_write;
-    sqlfs_op.statfs	= sqlfs_op_statfs;
-    sqlfs_op.release	= sqlfs_op_release;
-    sqlfs_op.fsync	= sqlfs_op_fsync;
+    sqlfs_op.getattr    = sqlfs_op_getattr;
+    sqlfs_op.access     = sqlfs_op_access;
+    sqlfs_op.readlink   = sqlfs_op_readlink;
+    sqlfs_op.readdir    = sqlfs_op_readdir;
+    sqlfs_op.mknod      = sqlfs_op_mknod;
+    sqlfs_op.mkdir      = sqlfs_op_mkdir;
+    sqlfs_op.symlink    = sqlfs_op_symlink;
+    sqlfs_op.unlink     = sqlfs_op_unlink;
+    sqlfs_op.rmdir      = sqlfs_op_rmdir;
+    sqlfs_op.rename     = sqlfs_op_rename;
+    sqlfs_op.link       = sqlfs_op_link;
+    sqlfs_op.chmod      = sqlfs_op_chmod;
+    sqlfs_op.chown      = sqlfs_op_chown;
+    sqlfs_op.truncate   = sqlfs_op_truncate;
+    sqlfs_op.utime      = sqlfs_op_utime;
+    sqlfs_op.open       = sqlfs_op_open;
+    sqlfs_op.create     = sqlfs_op_create;
+    sqlfs_op.read       = sqlfs_op_read;
+    sqlfs_op.write      = sqlfs_op_write;
+    sqlfs_op.statfs     = sqlfs_op_statfs;
+    sqlfs_op.release    = sqlfs_op_release;
+    sqlfs_op.fsync      = sqlfs_op_fsync;
 /* the xaddr functions are optional and can safely be left unimplemented
-    sqlfs_op.setxattr	= sqlfs_op_setxattr;
-    sqlfs_op.getxattr	= sqlfs_op_getxattr;
-    sqlfs_op.listxattr	= sqlfs_op_listxattr;
+    sqlfs_op.setxattr   = sqlfs_op_setxattr;
+    sqlfs_op.getxattr   = sqlfs_op_getxattr;
+    sqlfs_op.listxattr  = sqlfs_op_listxattr;
     sqlfs_op.removexattr= sqlfs_op_removexattr;
 */
 #endif
@@ -3495,3 +3495,5 @@ int sqlfs_fuse_main(int argc, char **argv)
 }
 
 #endif
+
+/* -*- mode: c; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4; c-file-style: "bsd"; -*- */

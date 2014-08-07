@@ -1346,9 +1346,7 @@ static int get_value(sqlfs_t *sqlfs, const char *key, key_value *value, size_t b
     const char *tail;
     sqlite3_stmt *stmt;
     static const char *cmd = "select size from meta_data where key = :key; ";
-    size_t size = 0;
 
-    clean_value(value);
     BEGIN;
 
     SQLITE3_PREPARE(get_sqlfs(sqlfs)->db, cmd, -1, &stmt,  &tail);
@@ -1367,31 +1365,57 @@ static int get_value(sqlfs_t *sqlfs, const char *key, key_value *value, size_t b
     }
     else
     {
-        size = sqlite3_column_int64(stmt, 0);
+        size_t filesize = sqlite3_column_int64(stmt, 0);
+        if ((end == 0) || (end > filesize))
+            end = filesize;
         r = SQLITE_OK;
     }
+
     if (r == SQLITE_OK)
     {
-        if ((end == 0) || (end > size))
-            end = size;
         if (begin < end)
         {
-            int block_no;
-            value->size = size;
-            value->data = malloc(value->size);
+            size_t block_no = begin / BLOCK_SIZE;
+            size_t blockbegin = block_no * BLOCK_SIZE; // rounded down to nearest block
+            size_t blockend = end / BLOCK_SIZE * BLOCK_SIZE; // beginning of last block
+            size_t offset = begin - blockbegin;
+            char *block = calloc(BLOCK_SIZE, sizeof(char));
+            char *data = value->data; // pointer to move along as it is written to
             assert(value->data);
-            if (end == 0)
-                end = value->size;
-            begin = (block_no = (begin / BLOCK_SIZE)) * BLOCK_SIZE;
-            for ( ; begin < end; begin += BLOCK_SIZE, block_no++)
+            { /* handle first block, whether it is the whole block, or only part of it */
+                size_t readsize = BLOCK_SIZE - offset;
+                if (value->size < readsize)
+                  readsize = value->size;
+                r = get_value_block(sqlfs, key, block, block_no, NULL);
+                memcpy(data, block + offset, readsize);
+                block_no++;
+                blockbegin += BLOCK_SIZE;
+                data += readsize;
+            }
+            /* read complete blocks in the middle of the write */
+            while ((r == SQLITE_OK) && (blockbegin < blockend))
             {
-                r = get_value_block(sqlfs, key, value->data + begin, block_no, NULL);
+                r = get_value_block(sqlfs, key, data, block_no, NULL);
                 if (r != SQLITE_OK)
                     break;
+                block_no++;
+                blockbegin += BLOCK_SIZE;
+                data += BLOCK_SIZE;
             }
+            /* partial block at the end of the read */
+            if ((r == SQLITE_OK) && (blockbegin < end))
+            {
+                assert(blockbegin % BLOCK_SIZE == 0);
+                assert(end - blockbegin < BLOCK_SIZE);
+                r = get_value_block(sqlfs, key, block, block_no, NULL);
+                memcpy(data, block, end - blockend);
+            }
+            free(block);
         }
         else
+        {
             r = SQLITE_NOTFOUND;
+        }
     }
 
     sqlite3_reset(stmt);
@@ -1404,7 +1428,8 @@ static int get_value(sqlfs_t *sqlfs, const char *key, key_value *value, size_t b
 #undef INDEX
 #define INDEX 26
 
-/* 'begin' and 'end' are the positions in bytes relative to the file to start and finish writing to */
+/* 'begin' and 'end' are the positions in bytes relative to the file
+ * to start and finish writing to. */
 static int set_value(sqlfs_t *sqlfs, const char *key, const key_value *value, size_t begin, size_t end)
 {
     int r;
@@ -1907,19 +1932,16 @@ int sqlfs_proc_readlink(sqlfs_t *sqlfs, const char *path, char *buf, size_t size
     {
         if (!strcmp(attr.type, TYPE_SYM_LINK))
         {
-            r = get_value(get_sqlfs(sqlfs), path, &value, 0, 0);
+            value.data = buf;
+            value.size = size;
+            r = get_value(get_sqlfs(sqlfs), path, &value, 0, size);
             if (r == SQLITE_OK)
             {
-                if (value.size > size)
-                {
-                    /* too short a buffer */
+                if (attr.size > size)
                     show_msg(stderr,
                              "warning: readlink provided buffer too small\n");
-
-                }
                 strncpy(buf, value.data, size);
             }
-            clean_value(&value);
         }
         else
         {
@@ -2708,8 +2730,8 @@ int sqlfs_proc_read(sqlfs_t *sqlfs, const char *path, char *buf, size_t size, of
                     fuse_file_info *fi)
 {
     int i, r, result = 0;
-    int64_t length = size;
     key_value value = { 0, 0 };
+    size_t existing_size = 0;
 
     BEGIN;
     CHECK_PARENT_PATH(path);
@@ -2731,26 +2753,25 @@ int sqlfs_proc_read(sqlfs_t *sqlfs, const char *path, char *buf, size_t size, of
     if ((fi->flags & (O_RDONLY | O_RDWR)) == 0)
         return - EBADF;*/
 
+    i = key_exists(get_sqlfs(sqlfs), path, &existing_size);
+    if (i == 2)
+    {
+        COMPLETE(1);
+        return -EBUSY;
+    }
+
+    value.data = buf;
+    value.size = size;
     r = get_value(get_sqlfs(sqlfs), path, &value, offset, offset + size);
     if (r != SQLITE_OK)
-    {
         result = -EIO;
-    }
-    else if ((size_t) offset > value.size) /* nothing to read */
+    else if ((size_t) offset > existing_size) /* nothing to read */
         result = 0;
+    else if ((size_t) offset + size > existing_size) /* can read less than asked for */
+        result = existing_size - offset;
     else
-    {
-        if (length > (int64_t) value.size - offset)
-            length = (int64_t) value.size - offset;
-        if (length < 0)
-            length = 0;
-        if (length > 0)
-        {
-            memcpy(buf, ((char*)value.data) + offset,  length);
-        }
-        result = length;
-    }
-    clean_value(&value);
+        result = size;
+
     COMPLETE(1);
     return result;
 }

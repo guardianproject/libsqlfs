@@ -2502,7 +2502,7 @@ int sqlfs_proc_truncate(sqlfs_t *sqlfs, const char *path, off_t size)
         value.size = size - existing_size;
         value.data = calloc(value.size, sizeof(char));
         memset(value.data, 0, value.size);
-        r = set_value(get_sqlfs(sqlfs), path, &value, 0, 0);
+        r = set_value(get_sqlfs(sqlfs), path, &value, existing_size, size);
         if (r != SQLITE_OK)
         {
             if (r == SQLITE_BUSY)

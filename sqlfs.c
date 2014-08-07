@@ -1468,59 +1468,64 @@ static int set_value(sqlfs_t *sqlfs, const char *key, const key_value *value, si
 
     {
         int block_no;
-        size_t begin2, end2, length, position_in_value = 0;
+        size_t blockbegin, length, position_in_value = 0;
         tmp = calloc( BLOCK_SIZE, sizeof(char));
 
         if (end == 0)
             end = value->size;
         block_no = begin / BLOCK_SIZE;
-        begin2 = block_no * BLOCK_SIZE; // 'begin' chopped to BLOCK_SIZE increments
+        blockbegin = block_no * BLOCK_SIZE; // 'begin' chopped to BLOCK_SIZE increments
 
-        if (end > begin2 + BLOCK_SIZE)
-            end2 = begin2 + BLOCK_SIZE; // the write spans multiple blocks
-        else
-            end2 = end; // the write fits in a single block
+
 
         /* partial write in the first block */
         {
-            size_t old_size = 0;
+            size_t blockEnd, old_size = 0;
+
             r = get_value_block(sqlfs, key, tmp, block_no, &old_size);
-            position_in_value = end2 - begin;
-            memcpy(tmp + (begin - begin2), value->data, position_in_value);
-            length = end2 - begin2;
+
+            if (end > blockbegin + BLOCK_SIZE)
+                // the write spans multiple blocks, only write first one
+                blockEnd = blockbegin + BLOCK_SIZE;
+            else
+                blockEnd = end; // the write fits in a single block
+            position_in_value = blockEnd - begin;
+
+            memcpy(tmp + (begin - blockbegin), value->data, position_in_value);
+            length = blockEnd - blockbegin;
             if (length < old_size)
                 length = old_size;
             r = set_value_block(sqlfs, key, tmp, block_no, length);
             block_no++;
-            begin2 += BLOCK_SIZE;
+            blockbegin += BLOCK_SIZE;
         }
 
         /* writing complete blocks in the middle of the write */
-        while (begin2 < end / BLOCK_SIZE * BLOCK_SIZE) // this chops to BLOCK_SIZE increments
+        while (blockbegin < end / BLOCK_SIZE * BLOCK_SIZE) // this chops to BLOCK_SIZE increments
         {
             r = set_value_block(sqlfs, key, value->data + position_in_value, block_no, BLOCK_SIZE);
             if (r != SQLITE_OK)
                 break;
 
             block_no++;
-            begin2 += BLOCK_SIZE;
+            blockbegin += BLOCK_SIZE;
             position_in_value += BLOCK_SIZE;
         }
 
         /* partial block at the end of the write */
-        if (begin2 < end)
+        if (blockbegin < end)
         {
 
-            assert(begin2 % BLOCK_SIZE == 0);
-            assert(end - begin2 < (size_t) BLOCK_SIZE);
+            assert(blockbegin % BLOCK_SIZE == 0);
+            assert(end - blockbegin < (size_t) BLOCK_SIZE);
 
             memset(tmp, 0, BLOCK_SIZE);
             r = get_value_block(sqlfs, key, tmp, block_no, &i);
             if (r != SQLITE_OK)
                 i = 0;
-            memcpy(tmp, value->data + position_in_value, end - begin2 );
-            if (i < (int)(end - begin2))
-                i = (int)(end - begin2);
+            memcpy(tmp, value->data + position_in_value, end - blockbegin );
+            if (i < (int)(end - blockbegin))
+                i = (int)(end - blockbegin);
 
             r = set_value_block(sqlfs, key, tmp, block_no, i);
         }

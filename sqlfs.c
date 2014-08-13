@@ -1440,7 +1440,6 @@ static int set_value(sqlfs_t *sqlfs, const char *key, const key_value *value, si
     static const char *selectsize = "select size from meta_data where key = :key ";
     static const char *createfile_cmd = "insert or ignore into meta_data (key) VALUES ( :key ) ; ";
     static const char *updatesize_cmd = "update meta_data set size = :size where key =  :key  ; ";
-    char *tmp;
 
     /* get the size of the file if it already exists */
     r = sqlite3_prepare(get_sqlfs(sqlfs)->db, selectsize, -1, &stmt, &tail);
@@ -1494,7 +1493,7 @@ static int set_value(sqlfs_t *sqlfs, const char *key, const key_value *value, si
     {
         size_t block_no;
         size_t blockbegin, length, position_in_value = 0;
-        tmp = calloc( BLOCK_SIZE, sizeof(char));
+        char tmp[BLOCK_SIZE];
 
         if (end == 0)
             end = begin + value->size;
@@ -1554,8 +1553,6 @@ static int set_value(sqlfs_t *sqlfs, const char *key, const key_value *value, si
 
             r = set_value_block(sqlfs, key, tmp, block_no, i);
         }
-
-        free(tmp);
     }
 
     SQLITE3_PREPARE(get_sqlfs(sqlfs)->db, updatesize_cmd, -1, &stmt,  &tail);

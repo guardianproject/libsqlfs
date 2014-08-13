@@ -2871,18 +2871,17 @@ int sqlfs_proc_write(sqlfs_t *sqlfs, const char *path, const char *buf, size_t s
         }
         else if ((size_t) offset > existing_size)
         {
+          /* this is the only case that uses calloc(), so
+             clean_value() should only be run here, otherwise it will
+             free() 'buf', which has been handed in by the caller. */
+            clean_value(&value);
             // blank space was filled in, but there was only 'size' data
             result = size;
         }
         else
         {
-            /* make sure 'buf' is not freed by clean_value(), since it
-             * was passed into this function and therefore should be
-             * freed outside of this function. */
-            value.data = 0;
             result = value.size;
         }
-        clean_value(&value);
     }
     COMPLETE(1);
     return result;

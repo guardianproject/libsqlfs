@@ -1203,6 +1203,10 @@ static int key_set_type(sqlfs_t *sqlfs, const char *key, const char *type)
 #undef INDEX
 #define INDEX 21
 
+/* If the read was successful, SQLITE_OK is returned.  If there is
+ * nothing to read, then SQLITE_DONE is returned.  This probably
+ * doesn't make sense, but leave it as is for now since it'll be a
+ * little project to change it. */
 static int get_value_block(sqlfs_t *sqlfs, const char *key, char *data, size_t block_no, size_t *size)
 {
     int r;
@@ -1435,7 +1439,6 @@ static int set_value(sqlfs_t *sqlfs, const char *key, const key_value *value, si
     int r;
     const char *tail;
     sqlite3_stmt *stmt;
-    size_t i;
     size_t current_file_size = 0;
     static const char *selectsize = "select size from meta_data where key = :key ";
     static const char *createfile_cmd = "insert or ignore into meta_data (key) VALUES ( :key ) ; ";
@@ -1492,31 +1495,38 @@ static int set_value(sqlfs_t *sqlfs, const char *key, const key_value *value, si
 
     {
         size_t block_no;
-        size_t blockbegin, length, position_in_value = 0;
+        size_t blockbegin, blockend, length, position_in_value = 0;
         char tmp[BLOCK_SIZE];
 
         if (end == 0)
             end = begin + value->size;
         block_no = begin / BLOCK_SIZE;
         blockbegin = block_no * BLOCK_SIZE; // 'begin' chopped to BLOCK_SIZE increments
-
+        // beginning of last block, i.e. 'end' rounded to 'BLOCK_SIZE'
+        blockend = end / BLOCK_SIZE * BLOCK_SIZE;
 
 
         /* partial write in the first block */
         {
-            size_t blockEnd, old_size = 0;
+            size_t end_of_this_block, old_size = 0;
 
             r = get_value_block(sqlfs, key, tmp, block_no, &old_size);
-
+            /* SQLITE_OK == read data, SQLITE_DONE == no data */
+            if (r != SQLITE_OK && r != SQLITE_DONE)
+            {
+                show_msg(stderr, "%s\n", sqlite3_errmsg(get_sqlfs(sqlfs)->db));
+                COMPLETE(1);
+                return r;
+            }
             if (end > blockbegin + BLOCK_SIZE)
                 // the write spans multiple blocks, only write first one
-                blockEnd = blockbegin + BLOCK_SIZE;
+                end_of_this_block = blockbegin + BLOCK_SIZE;
             else
-                blockEnd = end; // the write fits in a single block
-            position_in_value = blockEnd - begin;
+                end_of_this_block = end; // the write fits in a single block
+            position_in_value = end_of_this_block - begin;
 
             memcpy(tmp + (begin - blockbegin), value->data, position_in_value);
-            length = blockEnd - blockbegin;
+            length = end_of_this_block - blockbegin;
             if (length < old_size)
                 length = old_size;
             r = set_value_block(sqlfs, key, tmp, block_no, length);
@@ -1525,33 +1535,37 @@ static int set_value(sqlfs_t *sqlfs, const char *key, const key_value *value, si
         }
 
         /* writing complete blocks in the middle of the write */
-        while (blockbegin < end / BLOCK_SIZE * BLOCK_SIZE) // this chops to BLOCK_SIZE increments
+        while ((r == SQLITE_OK) && (blockbegin < blockend))
         {
             r = set_value_block(sqlfs, key, value->data + position_in_value, block_no, BLOCK_SIZE);
-            if (r != SQLITE_OK)
-                break;
-
             block_no++;
             blockbegin += BLOCK_SIZE;
             position_in_value += BLOCK_SIZE;
+        }
+        if (r != SQLITE_OK)
+        {
+            show_msg(stderr, "%s\n", sqlite3_errmsg(get_sqlfs(sqlfs)->db));
+            COMPLETE(1);
+            return r;
         }
 
         /* partial block at the end of the write */
         if (blockbegin < end)
         {
+            size_t get_value_size;
 
             assert(blockbegin % BLOCK_SIZE == 0);
             assert(end - blockbegin < (size_t) BLOCK_SIZE);
 
             memset(tmp, 0, BLOCK_SIZE);
-            r = get_value_block(sqlfs, key, tmp, block_no, &i);
+            r = get_value_block(sqlfs, key, tmp, block_no, &get_value_size);
             if (r != SQLITE_OK)
-                i = 0;
-            memcpy(tmp, value->data + position_in_value, end - blockbegin );
-            if (i < (int)(end - blockbegin))
-                i = (int)(end - blockbegin);
+                get_value_size = 0;
+            memcpy(tmp, value->data + position_in_value, end - blockbegin);
+            if (get_value_size < (end - blockbegin))
+                get_value_size = end - blockbegin;
 
-            r = set_value_block(sqlfs, key, tmp, block_no, i);
+            r = set_value_block(sqlfs, key, tmp, block_no, get_value_size);
         }
     }
 

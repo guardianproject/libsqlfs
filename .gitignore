@@ -18,6 +18,7 @@ missing
 m4/
 #
 # build products
+cppcheck-result.xml
 fuse_sqlfs
 sqlfscat
 sqlfsls

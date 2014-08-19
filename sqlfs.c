@@ -39,6 +39,17 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <time.h>
 #include "sqlfs.h"
 
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
+
+#ifdef __ANDROID__
+# include <sys/vfs.h>
+# define statvfs statfs
+# define fstatvfs fstatfs
+#else
+# include <sys/statvfs.h>
+#endif
+
 #ifdef HAVE_LIBSQLCIPHER
 # include "sqlcipher/sqlite3.h"
 #else
@@ -3275,6 +3286,21 @@ static void * sqlfs_t_init(const char *db_file, const char *db_key)
      * written to disk one time) and improves concurrency by reducing blocking between
      * readers and writers */
     sqlite3_exec(sql_fs->db, "PRAGMA journal_mode = WAL;", NULL, NULL, NULL);
+
+    /* Without this limit, the WAL file can grow without bounds.  When
+     * extremely heavy loads, the WAL log can rapidly grow larger than
+     * the database itself.  So set a limit here to prevent the disk
+     * from filling with the WAL. */
+    char buf[256];
+    struct statvfs vfs;
+    statvfs(db_file, &vfs);
+    uint64_t limit = 10*1024*1024; // set min limit to 10MB
+    // set dynamic limit to 10% of available space on partition
+    uint64_t availableBytes = (uint64_t)vfs.f_bavail * vfs.f_bsize * 0.1;
+    if (availableBytes > limit)
+        limit = availableBytes;
+    snprintf(buf, 256, "PRAGMA journal_size_limit = %"PRIu64";", limit);
+    sqlite3_exec(sql_fs->db, buf, NULL, NULL, NULL);
 
     /* WAL mode only performs fsync on checkpoint operation, which reduces overhead
      * It should make it possible to run with synchronous set to NORMAL with less

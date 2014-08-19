@@ -85,7 +85,13 @@ static const size_t BLOCK_SIZE = 8192;
 
 static pthread_key_t pthread_key;
 
+static int instance_count = 0;
+
 static char default_db_file[PATH_MAX] = { 0 };
+
+/* the key needs to be kept around here for the thread handling, each
+ * thread will open a connection to the database on the fly, so each
+ * thread needs the key */
 #define MAX_DB_KEY_LENGTH 512
 static char default_db_key[MAX_DB_KEY_LENGTH] = { 0 };
 
@@ -3338,6 +3344,7 @@ static void * sqlfs_t_init(const char *db_file, const char *db_key)
     r = ensure_existence(sql_fs, "/", TYPE_DIR);
     if( !r )
         return 0;
+    instance_count++;
     return (void *) sql_fs;
 }
 
@@ -3353,7 +3360,11 @@ static void sqlfs_t_finalize(void *arg)
 
         sqlite3_close(sql_fs->db);
         free(sql_fs);
+        instance_count--;
     }
+    /* zero out password in memory */
+    if (instance_count < 1)
+        memset(default_db_key, 0, MAX_DB_KEY_LENGTH);
 }
 
 int sqlfs_open(const char *db_file, sqlfs_t **sqlfs)
@@ -3563,9 +3574,10 @@ int sqlfs_init_key(const char *db_file, const char *db_key)
 
 int sqlfs_fuse_main(int argc, char **argv)
 {
-
-
-    return fuse_main(argc, argv, &sqlfs_op);
+    int ret = fuse_main(argc, argv, &sqlfs_op);
+    /* zero out password in memory */
+    memset(default_db_key, 0, MAX_DB_KEY_LENGTH);
+    return ret;
 }
 
 #endif

@@ -3306,7 +3306,7 @@ static void * sqlfs_t_init(const char *db_file, const char *db_key)
      * It should make it possible to run with synchronous set to NORMAL with less
      * of a performance impact.
     */
-    sqlite3_exec(sql_fs->db, "PRAGMA synchronous = OFF;", NULL, NULL, NULL);
+    sqlite3_exec(sql_fs->db, "PRAGMA synchronous = NORMAL;", NULL, NULL, NULL);
 
     /* It is vitally important that write operations not fail to execute due
      * to busy timeouts. Even using WAL, its still possible for a command to be

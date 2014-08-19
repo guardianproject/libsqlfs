@@ -83,7 +83,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 static const size_t BLOCK_SIZE = 8192;
 
-static pthread_key_t sql_key;
+static pthread_key_t pthread_key;
 
 static char default_db_file[PATH_MAX] = { 0 };
 #define MAX_DB_KEY_LENGTH 512
@@ -114,12 +114,12 @@ static __inline__ sqlfs_t *get_sqlfs(sqlfs_t *p)
     if (p)
         return p;
 
-    sqlfs = (sqlfs_t *) (pthread_getspecific(sql_key));
+    sqlfs = (sqlfs_t *) (pthread_getspecific(pthread_key));
     if (sqlfs)
         return sqlfs;
 
     sqlfs = (sqlfs_t*) sqlfs_t_init(default_db_file, default_db_key);
-    pthread_setspecific(sql_key, sqlfs);
+    pthread_setspecific(pthread_key, sqlfs);
     return sqlfs;
 }
 static __inline__ int get_new_inode(void)
@@ -3544,7 +3544,7 @@ int sqlfs_init(const char *db_file_name)
 
     if (db_file_name)
         strncpy(default_db_file, db_file_name, sizeof(default_db_file));
-    pthread_key_create(&sql_key, sqlfs_t_finalize);
+    pthread_key_create(&pthread_key, sqlfs_t_finalize);
     return 0;
 }
 

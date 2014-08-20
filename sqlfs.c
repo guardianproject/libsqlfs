@@ -937,32 +937,6 @@ static int ensure_existence(sqlfs_t *sqlfs, const char *key, const char *type)
     return 1;
 }
 
-#if 0
-static int ensure_parent_existence(sqlfs_t *sqlfs, const char *key)
-{
-    int r;
-    char *parent = calloc(strlen(key) + 2, sizeof(char));
-    char *t;
-    assert(parent);
-
-    strcpy(parent, key);
-    remove_tail_slash(parent);
-    t = strrchr(parent, '/');
-    if (t)
-        *t = 0;
-
-    if (*parent == 0)
-    {
-        t = parent;
-        *t = '/';
-        *(t + 1) = 0;
-    }
-    ensure_existence(sqlfs, parent, TYPE_DIR);
-    free(parent);
-    return 1;
-}
-#endif
-
 static int get_parent_path(const char *path, char buf[PATH_MAX])
 {
     char *s;
@@ -1707,19 +1681,15 @@ static int check_parent_access(sqlfs_t *sqlfs, const char *path)
 
     BEGIN;
     r = get_parent_path(path, ppath);
-//show_msg(stderr, "%s #1 returns %d on %s\n", __func__, r, path);//???
     if (r == SQLITE_OK)
     {
         result = check_parent_access(sqlfs, ppath);
-//show_msg(stderr, "%s #2 returns %d on %s\n", __func__, result, path);//???
         if (result == 0)
             result = (sqlfs_proc_access(sqlfs, (ppath), X_OK));
-//show_msg(stderr, "%s #3 returns %d on %s %s\n", __func__, result, path, ppath);//???
     }
     /* else if no parent, we return 0 by default */
 
     COMPLETE(1);
-//show_msg(stderr, "%s returns %d on %s\n", __func__, result, path);//???
     return result;
 }
 
@@ -1735,8 +1705,6 @@ static int check_parent_write(sqlfs_t *sqlfs, const char *path)
     if (r == SQLITE_OK)
     {
         result = (sqlfs_proc_access(sqlfs, (ppath), W_OK | X_OK));
-//show_msg(stderr, "check directory write 1st %s %d uid %d gid %d\n",   ppath, result, get_sqlfs(sqlfs)->uid, get_sqlfs(sqlfs)->gid);//???
-
 #ifndef HAVE_LIBFUSE
         /* libfuse seems to enforce that the parent directory before getting
          * here, but without libfuse, we need to do it manually */
@@ -1750,7 +1718,6 @@ static int check_parent_write(sqlfs_t *sqlfs, const char *path)
 #endif
     }
     COMPLETE(1);
-//show_msg(stderr, "check directory write %s %d\n",   ppath, result);//???
     return result;
 }
 
@@ -1856,7 +1823,6 @@ int sqlfs_proc_access(sqlfs_t *sqlfs, const char *path, int mask)
             result = -EBUSY;
 
         COMPLETE(1);
-        //show_msg(stderr, "root access returns %d on %s\n", result, path);//???
         return result;
     }
 
@@ -1887,7 +1853,6 @@ int sqlfs_proc_access(sqlfs_t *sqlfs, const char *path, int mask)
 
     if (result == 0)
         r = get_permission_data(get_sqlfs(sqlfs), path, &fgid, &fuid, &fmode);
-    //show_msg(stderr, "get permission returns %d\n", r);//???
     if ((r == SQLITE_OK) && (result == 0))
     {
         if (uid == (uid_t) fuid)

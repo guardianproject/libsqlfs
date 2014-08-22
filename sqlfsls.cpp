@@ -68,20 +68,20 @@ int main(int argc, char *argv[])
 
 #ifdef HAVE_LIBSQLCIPHER
 /* get the password from stdin */
-    char key[BUF_SIZE];
-    char *p = fgets(key, BUF_SIZE, stdin);
+    char password[BUF_SIZE];
+    char *p = fgets(password, BUF_SIZE, stdin);
     if (p)
     {
         /* remove trailing newline */
         size_t last = strlen(p) - 1;
         if (p[last] == '\n')
             p[last] = '\0';
-        if (!sqlfs_open_key(db, key, &sqlfs)) {
+        if (!sqlfs_open_password(db, password, &sqlfs)) {
             fprintf(stderr, "Failed to open: %s\n", db);
             return 1;
         }
-        sqlfs_init_key(db, key);
-        memset(key, 0, BUF_SIZE); // zero out password
+        sqlfs_init_password(db, password);
+        memset(password, 0, BUF_SIZE); // zero out password
     }
     else
 #endif /* HAVE_LIBSQLCIPHER */

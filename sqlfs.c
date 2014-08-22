@@ -92,8 +92,7 @@ static char default_db_file[PATH_MAX] = { 0 };
 /* the key needs to be kept around here for the thread handling, each
  * thread will open a connection to the database on the fly, so each
  * thread needs the key */
-#define MAX_DB_KEY_LENGTH 512
-static char default_db_key[MAX_DB_KEY_LENGTH] = { 0 };
+static char cached_password[MAX_PASSWORD_LENGTH] = { 0 };
 
 static int max_inode = 0;
 
@@ -123,7 +122,7 @@ static __inline__ sqlfs_t *get_sqlfs(sqlfs_t *p)
     if (sqlfs)
         return sqlfs;
 
-    sqlfs = (sqlfs_t*) sqlfs_t_init(default_db_file, default_db_key);
+    sqlfs = (sqlfs_t*) sqlfs_t_init(default_db_file, cached_password);
     pthread_setspecific(pthread_key, sqlfs);
     return sqlfs;
 }
@@ -3182,7 +3181,7 @@ static int create_db_table(sqlfs_t *sqlfs)
     return 1;
 }
 
-static void * sqlfs_t_init(const char *db_file, const char *db_key)
+static void * sqlfs_t_init(const char *db_file, const char *password)
 {
     int i, r;
     sqlfs_t *sql_fs = calloc(1, sizeof(*sql_fs));
@@ -3199,12 +3198,12 @@ static void * sqlfs_t_init(const char *db_file, const char *db_key)
     }
 
 #ifdef HAVE_LIBSQLCIPHER
-    if (db_key && strlen(db_key))
+    if (password && strlen(password))
     {
-        r = sqlite3_key(sql_fs->db, db_key, strlen(db_key));
+        r = sqlite3_key(sql_fs->db, password, strlen(password));
         if (r != SQLITE_OK)
         {
-            show_msg(stderr, "Opening the database with provided key failed.\n");
+            show_msg(stderr, "Opening the database with provided key/password failed!\n");
             return 0;
         }
         sqlite3_exec(sql_fs->db, "PRAGMA cipher_page_size = 8192;", NULL, NULL, NULL);
@@ -3286,7 +3285,7 @@ static void sqlfs_t_finalize(void *arg)
     }
     /* zero out password in memory */
     if (instance_count < 1)
-        memset(default_db_key, 0, MAX_DB_KEY_LENGTH);
+        memset(cached_password, 0, MAX_PASSWORD_LENGTH);
 }
 
 int sqlfs_open(const char *db_file, sqlfs_t **sqlfs)
@@ -3300,18 +3299,94 @@ int sqlfs_open(const char *db_file, sqlfs_t **sqlfs)
 }
 
 #ifdef HAVE_LIBSQLCIPHER
-int sqlfs_open_key(const char *db_file, const char *key, sqlfs_t **sqlfs)
+
+/* DANGER!  bytes must have exactly 32 bytes and buf must have at least 68!
+ * buf is filled with 64 hex chars, the sqlcipher raw escape sequence (x''),
+ * and the null terminator. This raw key data format is documented here:
+ * http://sqlcipher.net/sqlcipher-api/#key */
+static int generate_sqlcipher_raw_key(const uint8_t *bytes, size_t byteslen,
+                                      char *buf, size_t buflen)
 {
-    if (strlen(key) > MAX_DB_KEY_LENGTH) {
+    int i;
+    if (byteslen != REQUIRED_KEY_LENGTH)
+    {
+        show_msg(stderr, "Not %i bytes of raw key data! (%li bytes)\n",
+                 REQUIRED_KEY_LENGTH, byteslen);
         return 0;
     }
+    if (buflen < 68)
+    {
+        show_msg(stderr,
+                 "Not enough room in buf to write the full key! (68 != %li)\n",
+                 buflen);
+        return 0;
+    }
+    memset(buf, 0, buflen);
+    strncat(buf, "x'", buflen);
+    for (i = 0; i < REQUIRED_KEY_LENGTH; i++)
+    {
+        buflen = buflen - 2;
+        snprintf(buf + (i * 2) + 2, buflen, "%02X", bytes[i]);
+    }
+    snprintf(buf + (i * 2) + 2, buflen - 2, "'");
+    if (strlen(buf) != 67)
+    {
+        show_msg(stderr,
+                 "Raw key data string not 67 chars! (%li chars)\n",
+                 strlen(buf));
+        return 0;
+    }
+    return 1;
+}
+
+int sqlfs_open_key(const char *db_file, const uint8_t *key, size_t keylen, sqlfs_t **psqlfs)
+{
+    char buf[MAX_PASSWORD_LENGTH];
+    if (!generate_sqlcipher_raw_key(key, keylen, buf, MAX_PASSWORD_LENGTH))
+        return 0;
+    return sqlfs_open_password(db_file, buf, psqlfs);
+}
+
+int sqlfs_rekey(const char *db_file_name, const uint8_t *old_key, size_t old_key_len,
+                const void *new_key, size_t new_key_len)
+{
+    char oldbuf[MAX_PASSWORD_LENGTH];
+    char newbuf[MAX_PASSWORD_LENGTH];
+    if (!generate_sqlcipher_raw_key(old_key, old_key_len, oldbuf, MAX_PASSWORD_LENGTH))
+        return 0;
+    if (!generate_sqlcipher_raw_key(new_key, new_key_len, newbuf, MAX_PASSWORD_LENGTH))
+        return 0;
+    return sqlfs_change_password(db_file_name, oldbuf, newbuf);
+}
+
+int sqlfs_open_password(const char *db_file, const char *password, sqlfs_t **psqlfs)
+{
+    if (strlen(password) > MAX_PASSWORD_LENGTH)
+        return 0;
+
     if (db_file == 0)
         db_file = default_db_file;
-    *sqlfs = sqlfs_t_init(db_file, key);
+    *psqlfs = sqlfs_t_init(db_file, password);
 
-    if (*sqlfs == 0)
+    if (*psqlfs == 0)
         return 0;
     return 1;
+}
+
+int sqlfs_change_password(const char *db_file_name, const char *old_password, const char *new_password)
+{
+    int r;
+    sqlfs_t *sqlfs;
+
+    if (!sqlfs_open_password(db_file_name, old_password, &sqlfs))
+        return 0;
+    r = sqlite3_rekey(sqlfs->db, new_password, strlen(new_password));
+    if (r != SQLITE_OK)
+    {
+        show_msg(stderr, "ERROR: Failed to rekey database!\n");
+        return 0;
+    }
+    return sqlfs_close(sqlfs);
 }
 #endif
 
@@ -3482,12 +3557,29 @@ int sqlfs_init(const char *db_file_name)
 }
 
 #ifdef HAVE_LIBSQLCIPHER
-int sqlfs_init_key(const char *db_file, const char *db_key)
+int sqlfs_init_key(const char *db_file, const uint8_t *key, size_t keylen)
 {
-    if (strlen(db_key) > MAX_DB_KEY_LENGTH) {
+    char buf[MAX_PASSWORD_LENGTH];
+    if (keylen != REQUIRED_KEY_LENGTH)
+    {
+        show_msg(stderr, "Raw key not exactly %i bytes! (%li bytes)\n",
+                 REQUIRED_KEY_LENGTH, keylen);
         return 1;
     }
-    strncpy(default_db_key, db_key, strlen(db_key) );
+    if (!generate_sqlcipher_raw_key(key, keylen, buf, MAX_PASSWORD_LENGTH))
+        return 1;
+    strncpy(cached_password, buf, MAX_PASSWORD_LENGTH);
+    return sqlfs_init(db_file);
+}
+
+int sqlfs_init_password(const char *db_file, const char *password)
+{
+    if (strlen(password) > MAX_PASSWORD_LENGTH) {
+        show_msg(stderr, "Password longer than MAX_PASSWORD_LENGTH (%li > %i)\n",
+                 strlen(password), MAX_PASSWORD_LENGTH);
+        return 1;
+    }
+    strncpy(cached_password, password, MAX_PASSWORD_LENGTH);
     return sqlfs_init(db_file);
 }
 #endif
@@ -3498,7 +3590,7 @@ int sqlfs_fuse_main(int argc, char **argv)
 {
     int ret = fuse_main(argc, argv, &sqlfs_op);
     /* zero out password in memory */
-    memset(default_db_key, 0, MAX_DB_KEY_LENGTH);
+    memset(cached_password, 0, MAX_PASSWORD_LENGTH);
     return ret;
 }
 

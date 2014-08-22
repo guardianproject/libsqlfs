@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
     if(exists(database_filename))
        printf("%s exists.\n", database_filename);
     printf("Opening %s\n", database_filename);
-    sqlfs_init_key(database_filename, "mysupersecretpassword");
+    sqlfs_init_password(database_filename, "mysupersecretpassword");
     printf("Running tests:\n");
 
     run_standard_tests(NULL);

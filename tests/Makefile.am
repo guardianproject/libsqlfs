@@ -32,10 +32,14 @@ fsx_CFLAGS = -Wno-error=unused-result
 
 if WITH_SQLCIPHER
 check_SCRIPTS += c_perf_key.test c_api_key.test c_thread_api_key.test
+check_SCRIPTS += c_api_password.test
 check_PROGRAMS += c_perf_key c_api_key c_thread_api_key
+check_PROGRAMS += c_api_password
 c_perf_key_SOURCES = c_perf_key.c
 c_api_key_SOURCES = c_api_key.c
 c_thread_api_key_SOURCES = c_thread_api_key.c
+c_api_password_SOURCES = c_api_password.c
+c_thread_api_password_SOURCES = c_thread_api_password.c
 endif
 
 TESTS = $(check_SCRIPTS)

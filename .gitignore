@@ -36,6 +36,8 @@ tests/c_thread_api
 tests/c_thread_api_key
 tests/c_api_key
 tests/c_api_key.db
+tests/c_api_password
+tests/c_api_password.db
 tests/fuse_test
 #
 # emacs!

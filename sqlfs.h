@@ -95,19 +95,25 @@ extern "C" {
 #include "sqlfs_internal.h"
 
     int sqlfs_init(const char *);
+    /* since the password gets cooked down to 256 bits, 512 chars is plenty */
+#   define MAX_PASSWORD_LENGTH 512
 #ifdef HAVE_LIBSQLCIPHER
+    /* the raw key format is 32 bytes/256 bits of raw key data */
+#   define REQUIRED_KEY_LENGTH 32
     /** Initialize the db file and key
      *
      * The key can be a password or a raw AES key. Refer to SQLCipher's
      * documentation on the keying process.
      *
-     * http://sqlcipher.net/sqlcipher-api/
+     * http://sqlcipher.net/sqlcipher-api/#key
      *
      * @param db_file_name the file on disk to hold the VFS
      * @param key The password or key to encrypt the database with. Max length is 512.
      * @return 0 on success
      */
-    int sqlfs_init_key(const char *db_file_name, const char *key);
+    int sqlfs_init_password(const char *db_file, const char *password);
+    /* This is the raw key format, it needs 32 bytes of raw key data */
+    int sqlfs_init_key(const char *db_file, const uint8_t *key, size_t keylen);
 #endif
 #ifdef HAVE_LIBFUSE
     int sqlfs_fuse_main(int argc, char **argv);

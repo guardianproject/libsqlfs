@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
     sqlfs_init(database_filename);
     printf("Running tests:\n");
 
-    rc = sqlfs_open_key(database_filename, "mysupersafepassword", &sqlfs);
+    rc = sqlfs_open_password(database_filename, "mysupersafepassword", &sqlfs);
     printf("Opening database...");
     assert(rc);
     printf("passed\n");

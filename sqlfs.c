@@ -70,7 +70,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
     DONE_PREPARE
 
 
-static const int BLOCK_SIZE = 8192;
+static const size_t BLOCK_SIZE = 8192;
 
 static pthread_key_t sql_key;
 
@@ -1203,7 +1203,7 @@ static int key_set_type(sqlfs_t *sqlfs, const char *key, const char *type)
 #undef INDEX
 #define INDEX 21
 
-static int get_value_block(sqlfs_t *sqlfs, const char *key, char *data, int block_no, size_t *size)
+static int get_value_block(sqlfs_t *sqlfs, const char *key, char *data, size_t block_no, size_t *size)
 {
     int r;
     const char *tail;
@@ -1244,7 +1244,7 @@ static int get_value_block(sqlfs_t *sqlfs, const char *key, char *data, int bloc
 #undef INDEX
 #define INDEX 22
 
-static int set_value_block(sqlfs_t *sqlfs, const char *key, const char *data, int block_no, int size)
+static int set_value_block(sqlfs_t *sqlfs, const char *key, const char *data, size_t block_no, size_t size)
 {
     int r;
     const char *tail;
@@ -1467,7 +1467,7 @@ static int set_value(sqlfs_t *sqlfs, const char *key, const key_value *value, si
 
 
     {
-        int block_no;
+        size_t block_no;
         size_t blockbegin, length, position_in_value = 0;
         tmp = calloc( BLOCK_SIZE, sizeof(char));
 
@@ -1560,8 +1560,7 @@ static int set_value(sqlfs_t *sqlfs, const char *key, const key_value *value, si
 static int key_shorten_value(sqlfs_t *sqlfs, const char *key, size_t new_length)
 {
     int r;
-    size_t l, i;
-    int block_no;
+    size_t l, i, block_no;
     char *tmp;
     const char *tail;
     sqlite3_stmt *stmt;

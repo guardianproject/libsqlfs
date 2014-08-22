@@ -32,6 +32,8 @@ int main(int argc, char *argv[])
     printf("Running tests using the thread API, i.e. sqlfs == 0:\n");
     run_perf_tests(0, WRITESZ);
 
+    rc++; // silence ccpcheck
+
     return 0;
 }
 

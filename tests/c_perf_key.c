@@ -27,6 +27,9 @@ int main(int argc, char *argv[])
     printf("Closing database...");
     sqlfs_close(sqlfs);
     printf("done\n");
+
+    rc++; // silence ccpcheck
+
     return 0;
 }
 

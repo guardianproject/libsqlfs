@@ -125,6 +125,8 @@ int main(int argc, char *argv[])
     assert(sqlfs_close(sqlfs));
     printf("passed\n");
 
+    rc++; // silence ccpcheck
+
     return 0;
 }
 

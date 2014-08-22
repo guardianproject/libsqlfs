@@ -160,36 +160,37 @@ void test_write_n_bytes(sqlfs_t *sqlfs, int testsize)
 void test_read_bigger_than_buffer(sqlfs_t *sqlfs)
 {
     printf("Testing reading while requesting more bytes than will fit in the buffer...");
-    int i;
     int bufsize = 200;
     int filesize = bufsize * 4;
     char testfilename[PATH_MAX];
     char buf[bufsize];
     struct fuse_file_info fi = { 0 };
+    memset(buf, 0, bufsize);
     randomfilename(testfilename, PATH_MAX, "read_bigger_than_buffer");
     create_test_file(sqlfs, testfilename, filesize);
-    i = sqlfs_proc_read(sqlfs, testfilename, buf, sizeof(buf), bufsize, &fi);
-    assert(i==sizeof(buf));
+    assert(sqlfs_proc_read(sqlfs, testfilename, buf, sizeof(buf), bufsize, &fi) == sizeof(buf));
+    snprintf(testfilename, PATH_MAX, "%s", buf); // silence cppcheck
     printf("passed\n");
 }
 
 void test_read_byte_with_offset(sqlfs_t *sqlfs, int testsize)
 {
     printf("Testing reading a byte with offset 10000 times...");
-    int i, y, readloc;
+    int y;
     char buf[200];
     char testfilename[PATH_MAX];
     struct fuse_file_info fi = { 0 };
+    memset(buf, 0, 200);
     randomfilename(testfilename, PATH_MAX, "read_byte_with_offset");
     create_test_file(sqlfs, testfilename, testsize);
     fi.flags |= ~0;
     for(y=0; y<10000; y++)
     {
-        readloc = (float)rand() / RAND_MAX * (testsize-1);
-        i = sqlfs_proc_read(sqlfs, testfilename, buf, 1, readloc, &fi);
-        assert(i == 1);
+        int readloc = (float)rand() / RAND_MAX * (testsize-1);
+        assert(sqlfs_proc_read(sqlfs, testfilename, buf, 1, readloc, &fi) == 1);
         assert(buf[0] == (readloc % 90) + 32);
     }
+    snprintf(testfilename, PATH_MAX, "%s", buf); // silence cppcheck
     printf("passed\n");
 }
 
@@ -220,8 +221,7 @@ void test_truncate_existing_file(sqlfs_t *sqlfs, int testsize)
     assert(sb.st_size == testsize);
     ffi.flags = O_WRONLY | O_CREAT | O_TRUNC;
     ffi.direct_io = 0;
-    int rc = sqlfs_proc_open(sqlfs, testfilename, &ffi);
-    assert(rc == 0);
+    assert(sqlfs_proc_open(sqlfs, testfilename, &ffi) == 0);
     sqlfs_proc_getattr(sqlfs, testfilename, &sb);
     assert(sb.st_size == 0);
     printf("passed\n");
@@ -276,7 +276,7 @@ void test_write_seek_write(sqlfs_t *sqlfs)
     printf("Testing write/seek/write...");
     char* testfilename = "/skipwrite";
     char buf[1000001];
-    int i, rc, skip_offset;
+    int skip_offset;
     const char *skip1 = "it was the best of times";
     const int sz_skip1 = strlen(skip1);
     const char *skip2 = "it was the worst of times";
@@ -286,18 +286,14 @@ void test_write_seek_write(sqlfs_t *sqlfs)
     fi.flags |= O_RDWR | O_CREAT;
     for(skip_offset = 100; skip_offset < 1000001; skip_offset *= 100)
     {
-        rc = sqlfs_proc_write(sqlfs, testfilename, skip1, sz_skip1, 0, &fi);
-        assert(rc);
-        rc = sqlfs_proc_write(sqlfs, testfilename, skip2, sz_skip2, skip_offset, &fi);
-        assert(rc);
+        assert(sqlfs_proc_write(sqlfs, testfilename, skip1, sz_skip1, 0, &fi));
+        assert(sqlfs_proc_write(sqlfs, testfilename, skip2, sz_skip2, skip_offset, &fi));
         sqlfs_proc_getattr(sqlfs, testfilename, &sb);
         assert(sb.st_size == (skip_offset+sz_skip2));
-        i = sqlfs_proc_read(sqlfs, testfilename, buf, sz_skip1, 0, &fi);
-        assert(i == sz_skip1);
+        assert(sqlfs_proc_read(sqlfs, testfilename, buf, sz_skip1, 0, &fi) == sz_skip1);
         buf[sz_skip1] = 0;
         assert(!strcmp(buf, skip1));
-        i = sqlfs_proc_read(sqlfs, testfilename, buf, sz_skip2, skip_offset, &fi);
-        assert(i == sz_skip2);
+        assert(sqlfs_proc_read(sqlfs, testfilename, buf, sz_skip2, skip_offset, &fi) == sz_skip2);
         buf[sz_skip2] = 0;
         assert(!strcmp(buf, skip2));
     }
@@ -306,7 +302,6 @@ void test_write_seek_write(sqlfs_t *sqlfs)
 
 static void wbb_helper(sqlfs_t *sqlfs, int testsize)
 {
-    int rc;
     char testfilename[PATH_MAX];
     randomfilename(testfilename, PATH_MAX, "skip_write_boundaries");
     char buf[testsize+1];
@@ -319,13 +314,11 @@ static void wbb_helper(sqlfs_t *sqlfs, int testsize)
     for (i=0; i<testsize; ++i)
         data[i] = (i % 90) + 32;
 
-    rc = sqlfs_proc_write(sqlfs, testfilename, data, testsize, 0, &fi);
-    assert(rc);
+    assert(sqlfs_proc_write(sqlfs, testfilename, data, testsize, 0, &fi));
     sqlfs_proc_getattr(sqlfs, testfilename, &sb);
     assert(sb.st_size == testsize);
 
-    i = sqlfs_proc_read(sqlfs, testfilename, buf, testsize, 0, &fi);
-    assert(i == testsize);
+    assert(sqlfs_proc_read(sqlfs, testfilename, buf, testsize, 0, &fi) == testsize);
     buf[testsize] = 0;
     assert(!strcmp(buf, data));
     free(data);
@@ -356,6 +349,8 @@ void test_o_append_existing_file(sqlfs_t *sqlfs)
     struct fuse_file_info ffi;
     struct fuse_file_info fi = { 0 };
     fi.flags |= O_RDONLY;
+    memset(buf, 0, testsize);
+    memset(buf2, 0, testsize);
     randomfilename(testfilename, PATH_MAX, "append_existing_file");
     create_test_file(sqlfs, testfilename, testsize);
     sqlfs_proc_getattr(sqlfs, testfilename, &sb);
@@ -369,9 +364,9 @@ void test_o_append_existing_file(sqlfs_t *sqlfs)
     sqlfs_proc_write(sqlfs, testfilename, buf, testsize, 0, &ffi);
     sqlfs_proc_getattr(sqlfs, testfilename, &sb);
     assert(sb.st_size == testsize*2);
-    i = sqlfs_proc_read(sqlfs, testfilename, buf2, testsize, 0, &fi);
+    assert(sqlfs_proc_read(sqlfs, testfilename, buf2, testsize, 0, &fi) > 0);
     assert(!strcmp(buf, buf2));
-    i = sqlfs_proc_read(sqlfs, testfilename, buf2, testsize, testsize, &fi);
+    assert(sqlfs_proc_read(sqlfs, testfilename, buf2, testsize, testsize, &fi) > 0);
     assert(!strcmp(buf, buf2));
     printf("passed\n");
 }

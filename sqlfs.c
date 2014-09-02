@@ -123,7 +123,6 @@ static __inline__ sqlfs_t *get_sqlfs(sqlfs_t *p)
         return sqlfs;
 
     sqlfs = (sqlfs_t*) sqlfs_t_init(default_db_file, cached_password);
-    pthread_setspecific(pthread_key, sqlfs);
     return sqlfs;
 }
 
@@ -3265,6 +3264,7 @@ static void * sqlfs_t_init(const char *db_file, const char *password)
     r = ensure_existence(sql_fs, "/", TYPE_DIR);
     if (!r)
         return 0;
+    pthread_setspecific(pthread_key, sql_fs);
     instance_count++;
     return (void *) sql_fs;
 }
@@ -3288,15 +3288,6 @@ static void sqlfs_t_finalize(void *arg)
         memset(cached_password, 0, MAX_PASSWORD_LENGTH);
 }
 
-int sqlfs_open(const char *db_file, sqlfs_t **sqlfs)
-{
-    if (db_file == 0)
-        db_file = default_db_file;
-    *sqlfs = sqlfs_t_init(db_file, 0);
-    if (!*sqlfs)
-        return 0;
-    return 1;
-}
 
 #ifdef HAVE_LIBSQLCIPHER
 
@@ -3341,12 +3332,12 @@ static int generate_sqlcipher_raw_key(const uint8_t *bytes, size_t byteslen,
 
 int sqlfs_open_key(const char *db_file, const uint8_t *key, size_t keylen, sqlfs_t **psqlfs)
 {
-    char buf[MAX_PASSWORD_LENGTH];
-    if (!generate_sqlcipher_raw_key(key, keylen, buf, MAX_PASSWORD_LENGTH))
+    sqlfs_init_key(db_file, key, keylen);
+    *psqlfs = sqlfs_t_init(db_file, cached_password);
+
+    if (*psqlfs == 0)
         return 0;
-    int r = sqlfs_open_password(db_file, buf, psqlfs);
-    memset(buf, 0, MAX_PASSWORD_LENGTH); // zero out password
-    return r;
+    return 1;
 }
 
 int sqlfs_rekey(const char *db_file_name, const uint8_t *old_key, size_t old_key_len,
@@ -3366,11 +3357,7 @@ int sqlfs_rekey(const char *db_file_name, const uint8_t *old_key, size_t old_key
 
 int sqlfs_open_password(const char *db_file, const char *password, sqlfs_t **psqlfs)
 {
-    if (strlen(password) > MAX_PASSWORD_LENGTH)
-        return 0;
-
-    if (db_file == 0)
-        db_file = default_db_file;
+    sqlfs_init_password(db_file, password);
     *psqlfs = sqlfs_t_init(db_file, password);
 
     if (*psqlfs == 0)
@@ -3394,6 +3381,16 @@ int sqlfs_change_password(const char *db_file_name, const char *old_password, co
     return sqlfs_close(sqlfs);
 }
 #endif
+
+int sqlfs_open(const char *db_file, sqlfs_t **psqlfs)
+{
+    sqlfs_init(db_file);
+    *psqlfs = sqlfs_t_init(db_file, NULL);
+
+    if (*psqlfs == 0)
+        return 0;
+    return 1;
+}
 
 int sqlfs_close(sqlfs_t *sqlfs)
 {

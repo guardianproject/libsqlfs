@@ -3344,7 +3344,9 @@ int sqlfs_open_key(const char *db_file, const uint8_t *key, size_t keylen, sqlfs
     char buf[MAX_PASSWORD_LENGTH];
     if (!generate_sqlcipher_raw_key(key, keylen, buf, MAX_PASSWORD_LENGTH))
         return 0;
-    return sqlfs_open_password(db_file, buf, psqlfs);
+    int r = sqlfs_open_password(db_file, buf, psqlfs);
+    memset(buf, 0, MAX_PASSWORD_LENGTH); // zero out password
+    return r;
 }
 
 int sqlfs_rekey(const char *db_file_name, const uint8_t *old_key, size_t old_key_len,
@@ -3356,7 +3358,10 @@ int sqlfs_rekey(const char *db_file_name, const uint8_t *old_key, size_t old_key
         return 0;
     if (!generate_sqlcipher_raw_key(new_key, new_key_len, newbuf, MAX_PASSWORD_LENGTH))
         return 0;
-    return sqlfs_change_password(db_file_name, oldbuf, newbuf);
+    int r = sqlfs_change_password(db_file_name, oldbuf, newbuf);
+    memset(oldbuf, 0, MAX_PASSWORD_LENGTH); // zero out password
+    memset(newbuf, 0, MAX_PASSWORD_LENGTH); // zero out password
+    return r;
 }
 
 int sqlfs_open_password(const char *db_file, const char *password, sqlfs_t **psqlfs)
@@ -3569,6 +3574,7 @@ int sqlfs_init_key(const char *db_file, const uint8_t *key, size_t keylen)
     if (!generate_sqlcipher_raw_key(key, keylen, buf, MAX_PASSWORD_LENGTH))
         return 1;
     strncpy(cached_password, buf, MAX_PASSWORD_LENGTH);
+    memset(buf, 0, MAX_PASSWORD_LENGTH); // zero out password
     return sqlfs_init(db_file);
 }
 

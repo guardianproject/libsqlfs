@@ -3584,6 +3584,11 @@ int sqlfs_init_password(const char *db_file, const char *password)
 }
 #endif
 
+int sqlfs_instance_count()
+{
+    return instance_count;
+}
+
 #ifdef HAVE_LIBFUSE
 
 int sqlfs_fuse_main(int argc, char **argv)

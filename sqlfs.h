@@ -95,6 +95,7 @@ extern "C" {
 #include "sqlfs_internal.h"
 
     int sqlfs_init(const char *);
+    int sqlfs_instance_count(); /* number of active threads */
     /* since the password gets cooked down to 256 bits, 512 chars is plenty */
 #   define MAX_PASSWORD_LENGTH 512
 #ifdef HAVE_LIBSQLCIPHER

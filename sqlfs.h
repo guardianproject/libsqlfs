@@ -94,27 +94,34 @@ extern "C" {
 #endif /* HAVE_LIBFUSE */
 #include "sqlfs_internal.h"
 
+/* There is a distinction between "init" and "open/close" mode.  FUSE uses
+ * "init" mode, where sqlfs instances are created on the fly as needed and
+ * stored using pthread_setspecific().  "open/close" mode is really no
+ * different, but it provides open and close methods as a way to keep track of
+ * whether the filesystem is mounted". */
+
     int sqlfs_init(const char *);
     int sqlfs_instance_count(); /* number of active threads */
+    int sqlfs_open(const char *db_file, sqlfs_t **sqlfs);
+    int sqlfs_close(sqlfs_t *);
     /* since the password gets cooked down to 256 bits, 512 chars is plenty */
 #   define MAX_PASSWORD_LENGTH 512
 #ifdef HAVE_LIBSQLCIPHER
     /* the raw key format is 32 bytes/256 bits of raw key data */
 #   define REQUIRED_KEY_LENGTH 32
-    /** Initialize the db file and key
-     *
-     * The key can be a password or a raw AES key. Refer to SQLCipher's
-     * documentation on the keying process.
-     *
-     * http://sqlcipher.net/sqlcipher-api/#key
-     *
-     * @param db_file_name the file on disk to hold the VFS
-     * @param key The password or key to encrypt the database with. Max length is 512.
-     * @return 0 on success
-     */
+    /* The SQLCipher key can be a password or a raw AES key. Refer to
+     * SQLCipher's documentation on the keying process.
+     * http://sqlcipher.net/sqlcipher-api/#key  */
+
+    /* This is the password format, it needs a UTF-8 string */
     int sqlfs_init_password(const char *db_file, const char *password);
+    int sqlfs_open_password(const char *db_file, const char *password, sqlfs_t **sqlfs);
+    int sqlfs_change_password(const char *db_file_name, const char *old_password, const char *new_password);
     /* This is the raw key format, it needs 32 bytes of raw key data */
     int sqlfs_init_key(const char *db_file, const uint8_t *key, size_t keylen);
+    int sqlfs_open_key(const char *db_file, const uint8_t *key, size_t keylen, sqlfs_t **psqlfs);
+    int sqlfs_rekey(const char *db_file_name, const uint8_t *old_key, size_t old_key_len,
+                    const void *new_key, size_t new_key_len);
 #endif
 #ifdef HAVE_LIBFUSE
     int sqlfs_fuse_main(int argc, char **argv);

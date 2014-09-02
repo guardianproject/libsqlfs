@@ -154,17 +154,6 @@ int sqlfs_proc_getxattr(sqlfs_t *, const char path, const char *name, char *valu
 int sqlfs_proc_listxattr(sqlfs_t *, const char *path, char *list, size_t size);
 int sqlfs_proc_removexattr(sqlfs_t *, const char *path, const char *name);
 
-#ifdef HAVE_LIBSQLCIPHER
-int sqlfs_open_key(const char *db_file, const uint8_t *key, size_t keylen, sqlfs_t **psqlfs);
-int sqlfs_rekey(const char *db_file_name, const uint8_t *old_key, size_t old_key_len,
-                const void *new_key, size_t new_key_len);
-int sqlfs_open_password(const char *db_file, const char *password, sqlfs_t **sqlfs);
-int sqlfs_change_password(const char *db_file_name, const char *old_password, const char *new_password);
-#endif
-int sqlfs_open(const char *db_file, sqlfs_t **sqlfs);
-int sqlfs_close(sqlfs_t *);
-
-
 #endif /* NOT __SQLFS_INTERNAL_H__ */
 
 

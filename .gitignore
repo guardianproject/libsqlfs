@@ -31,9 +31,13 @@ tests/fsx
 tests/c_api
 tests/c_api.db
 tests/c_perf
+tests/c_perf.db
 tests/c_perf_key
+tests/c_perf_key.db
 tests/c_thread_api
+tests/c_thread_api.db
 tests/c_thread_api_key
+tests/c_thread_api_key.db
 tests/c_api_key
 tests/c_api_key.db
 tests/c_api_password

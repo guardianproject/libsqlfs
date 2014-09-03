@@ -76,16 +76,24 @@ int main(int argc, char *argv[])
     assert(sqlfs_close(sqlfs));
     printf("passed\n");
 
+    assert(sqlfs_instance_count() == 0);
+
     printf("Testing direct SQL command...");
     assert(sqlfs_open_password(database_filename, first_password, &sqlfs));
     assert(sqlite3_exec(sqlfs->db, "SELECT count(*) FROM sqlite_master;", NULL, NULL, NULL) == SQLITE_OK);
     assert(sqlfs_close(sqlfs));
     printf("passed\n");
 
-    printf("Attempting to change password for unmounted VFS...");
+    printf("Attempting to change password for mounted VFS...");
     assert(sqlfs_open_password(database_filename, first_password, &sqlfs) );
-    assert(sqlfs_change_password(database_filename, first_password, new_password) );
+    assert(!sqlfs_change_password(database_filename, first_password, new_password) );
     assert(sqlfs_close(sqlfs));
+    printf("passed\n");
+
+    assert(sqlfs_instance_count() == 0);
+
+    printf("Change password for unmounted VFS...");
+    assert(sqlfs_change_password(database_filename, first_password, new_password) );
     printf("passed\n");
 
     printf("Mounting database with new password...");
@@ -93,14 +101,13 @@ int main(int argc, char *argv[])
     assert(!rc);
     rc = sqlfs_open_password(database_filename, new_password, &sqlfs);
     assert(rc);
-    printf("passed\n");
-
-    printf("Changing password of mounted VFS...");
-    assert(sqlfs_change_password(database_filename, new_password, "some random garbage"));
-    printf("passed\n");
-
-    printf("Closing database...");
     assert(sqlfs_close(sqlfs));
+    printf("passed\n");
+
+    assert(sqlfs_instance_count() == 0);
+
+    printf("Changing password of unmounted VFS again...");
+    assert(sqlfs_change_password(database_filename, new_password, "some random garbage"));
     printf("passed\n");
 
     rc++; // silence ccpcheck

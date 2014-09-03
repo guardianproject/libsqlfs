@@ -108,18 +108,26 @@ int main(int argc, char *argv[])
     assert(sqlfs_close(sqlfs));
     printf("passed\n");
 
+    assert(sqlfs_instance_count() == 0);
+
     printf("Testing direct SQL command...");
     assert(sqlfs_open_key(database_filename, firstkey, 32, &sqlfs));
     assert(sqlite3_exec(sqlfs->db, "SELECT count(*) FROM sqlite_master;", NULL, NULL, NULL) == SQLITE_OK);
     assert(sqlfs_close(sqlfs));
     printf("passed\n");
 
-    printf("Attempting to change key for unmounted VFS...");
+    printf("Attempting to change key for mounted VFS...");
     sqlfs = 0;
-    assert(sqlfs_open_key(database_filename, firstkey, 32, &sqlfs) );
+    assert(sqlfs_open_key(database_filename, firstkey, 32, &sqlfs));
     assert(sqlfs != 0);
-    assert(sqlfs_rekey(database_filename, firstkey, 32, newkey, 32) );
+    assert(!sqlfs_rekey(database_filename, firstkey, 32, newkey, 32));
     assert(sqlfs_close(sqlfs));
+    printf("passed\n");
+
+    assert(sqlfs_instance_count() == 0);
+
+    printf("Change password for unmounted VFS...");
+    assert(sqlfs_rekey(database_filename, firstkey, 32, newkey, 32));
     printf("passed\n");
 
     printf("Mounting database with new key...");
@@ -127,14 +135,13 @@ int main(int argc, char *argv[])
     assert(!rc);
     rc = sqlfs_open_key(database_filename, newkey, 32, &sqlfs);
     assert(rc);
-    printf("passed\n");
-
-    printf("Changing key of mounted VFS...");
-    assert(sqlfs_rekey(database_filename, newkey, 32, testkey, 32));
-    printf("passed\n");
-
-    printf("Closing database...");
     assert(sqlfs_close(sqlfs));
+    printf("passed\n");
+
+    assert(sqlfs_instance_count() == 0);
+
+    printf("Changing key of unmounted VFS again...");
+    assert(sqlfs_rekey(database_filename, newkey, 32, testkey, 32));
     printf("passed\n");
 
     rc++; // silence ccpcheck

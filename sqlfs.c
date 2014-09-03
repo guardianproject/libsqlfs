@@ -3342,6 +3342,14 @@ int sqlfs_rekey(const char *db_file_name, const uint8_t *old_key, size_t old_key
 {
     char oldbuf[MAX_PASSWORD_LENGTH];
     char newbuf[MAX_PASSWORD_LENGTH];
+
+    if (instance_count > 0)
+    {
+        show_msg(stderr, "ERROR: Cannot rekey on open sqlfs! (%i open)\n",
+                 instance_count);
+        return 0;
+    }
+
     if (!generate_sqlcipher_raw_key(old_key, old_key_len, oldbuf, MAX_PASSWORD_LENGTH))
         return 0;
     if (!generate_sqlcipher_raw_key(new_key, new_key_len, newbuf, MAX_PASSWORD_LENGTH))
@@ -3366,6 +3374,13 @@ int sqlfs_change_password(const char *db_file_name, const char *old_password, co
 {
     int r;
     sqlfs_t *sqlfs;
+
+    if (instance_count > 0)
+    {
+        show_msg(stderr, "ERROR: Cannot change password on open sqlfs! (%i open)\n",
+                 instance_count);
+        return 0;
+    }
 
     if (!sqlfs_open_password(db_file_name, old_password, &sqlfs))
         return 0;

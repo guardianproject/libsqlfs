@@ -37,32 +37,37 @@ int main(int argc, char *argv[])
        unlink(database_filename);
     }
 
-    printf("Initing %s...", database_filename);
-    sqlfs_init(database_filename);
-
-    printf("Opening database with too long password...");
-    char long_pass[600];
-    for(i = 0; i < 600; ++i) long_pass[i] = 'A';
-    long_pass[599] = '\0';
-    rc = sqlfs_open_password(database_filename, long_pass, &sqlfs);
-    assert(!rc);
-    printf("passed\n");
-
     printf("Creating %s...", database_filename);
     rc = sqlfs_open_password(database_filename, first_password, &sqlfs);
     assert(rc);
+    assert(sqlfs != 0);
     rc = sqlfs_close(sqlfs);
     assert(rc);
     printf("passed\n");
 
+    printf("Opening database with too long password...");
+    sqlfs = 0;
+    char long_pass[600];
+    for(i = 0; i < 600; ++i)
+        long_pass[i] = 'A';
+    long_pass[599] = '\0';
+    rc = sqlfs_open_password(database_filename, long_pass, &sqlfs);
+    assert(!rc);
+    assert(sqlfs == 0);
+    printf("passed\n");
+
     printf("Opening database with wrong password...");
+    sqlfs = 0;
     rc = sqlfs_open_password(database_filename, "fakesecret", &sqlfs);
     assert(!rc);
+    assert(sqlfs == 0);
     printf("passed\n");
 
     printf("Opening database with correct password...");
+    sqlfs = 0;
     rc = sqlfs_open_password(database_filename, first_password, &sqlfs);
     assert(rc);
+    assert(sqlfs != 0);
     printf("passed\n");
 
     run_standard_tests(sqlfs);

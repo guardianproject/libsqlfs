@@ -28,25 +28,27 @@ int main(int argc, char *argv[])
     if(argc > 1)
       database_filename = argv[1];
     if(exists(database_filename))
-       printf("%s exists.\n", database_filename);
-    printf("Opening %s\n", database_filename);
-    sqlfs_init(database_filename);
-    printf("Running tests:\n");
+    {
+       printf("\n(test database '%s' exists, deleting!)\n\n", database_filename);
+       unlink(database_filename);
+    }
 
+    printf("Opening %s...", database_filename);
     rc = sqlfs_open(database_filename, &sqlfs);
-    printf("Opening database...");
     assert(rc);
+    assert(sqlfs != 0);
     printf("passed\n");
 
     run_standard_tests(sqlfs);
 
     printf("Closing database...");
-    sqlfs_close(sqlfs);
-    printf("done\n");
+    assert(sqlfs_close(sqlfs));
+    printf("passed\n");
 
     rc++; // silence ccpcheck
 
     return 0;
 }
+
 
 /* -*- mode: c; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4; c-file-style: "bsd"; -*- */

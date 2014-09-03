@@ -24,17 +24,25 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 int main(int argc, char *argv[])
 {
+    int rc;
     char *database_filename = "c_thread_api.db";
 
     if(argc > 1)
       database_filename = argv[1];
     if(exists(database_filename))
        printf("%s exists.\n", database_filename);
+
     printf("Opening %s\n", database_filename);
-    sqlfs_init(database_filename);
-    printf("Running tests:\n");
+    rc = sqlfs_init(database_filename);
+    assert(rc == 0);
 
     run_standard_tests(NULL);
+
+    printf("Destroying:\n");
+    rc = sqlfs_destroy();
+    assert(rc == 0);
+
+    rc++; // silence ccpcheck
 
     printf("done\n");
     return 0;

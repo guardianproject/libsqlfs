@@ -189,6 +189,7 @@ void test_read_byte_with_offset(sqlfs_t *sqlfs, int testsize)
         int readloc = (float)rand() / RAND_MAX * (testsize-1);
         assert(sqlfs_proc_read(sqlfs, testfilename, buf, 1, readloc, &fi) == 1);
         assert(buf[0] == (readloc % 90) + 32);
+        readloc++; // silence cppcheck
     }
     snprintf(testfilename, PATH_MAX, "%s", buf); // silence cppcheck
     printf("passed\n");
@@ -337,7 +338,6 @@ void test_write_block_boundaries(sqlfs_t *sqlfs)
     printf("passed\n");
 }
 
-
 void test_o_append_existing_file(sqlfs_t *sqlfs)
 {
     printf("Testing opening existing file O_APPEND and writing...");
@@ -369,12 +369,14 @@ void test_o_append_existing_file(sqlfs_t *sqlfs)
     assert(sqlfs_proc_read(sqlfs, testfilename, buf2, testsize, testsize, &fi) > 0);
     assert(!strcmp(buf, buf2));
     printf("passed\n");
+    i++; rc++; // silence ccpcheck
 }
 
 void run_standard_tests(sqlfs_t* sqlfs)
 {
     int size;
 
+    printf("Running standard tests:\n");
     test_getattr_create_truncate_truncate_truncate(sqlfs);
     test_mkdir_with_sleep(sqlfs);
     test_mkdir_without_sleep(sqlfs);
@@ -427,6 +429,8 @@ void run_perf_tests(sqlfs_t *sqlfs, int testsize)
     char testfilename[PATH_MAX];
     char randomdata[testsize];
     struct fuse_file_info fi = { 0 };
+
+    printf("Running performance tests:\n");
 
     randomfilename(testfilename, PATH_MAX, "read_n_bytes");
     sqlfs_proc_write(sqlfs, testfilename, randomdata, testsize, 0, &fi);

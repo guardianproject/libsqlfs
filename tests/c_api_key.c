@@ -54,42 +54,52 @@ int main(int argc, char *argv[])
        unlink(database_filename);
     }
 
-    printf("Initing %s...", database_filename);
-    sqlfs_init(database_filename);
-
-    printf("Opening database with too long a key...");
-    uint8_t longkey[33];
-    memset(longkey, 5, 33);
-    rc = sqlfs_open_key(database_filename, longkey, 33, &sqlfs);
-    assert(!rc);
-    printf("passed\n");
-
-    printf("Opening database with too short a key...");
-    for (i = 0; i < 32; i++)
-        assert(!sqlfs_open_key(database_filename, firstkey, i, &sqlfs));
-    printf("passed\n");
-
     printf("Creating %s...", database_filename);
     rc = sqlfs_open_key(database_filename, firstkey, 32, &sqlfs);
     assert(rc);
+    assert(sqlfs != 0);
     rc = sqlfs_close(sqlfs);
     assert(rc);
     printf("passed\n");
 
+    printf("Opening database with too long a key...");
+    sqlfs = 0;
+    uint8_t longkey[33];
+    memset(longkey, 5, 33);
+    rc = sqlfs_open_key(database_filename, longkey, 33, &sqlfs);
+    assert(!rc);
+    assert(sqlfs == 0);
+    printf("passed\n");
+
+    printf("Opening database with too short a key...");
+    sqlfs = 0;
+    for (i = 0; i < 32; i++)
+    {
+        assert(!sqlfs_open_key(database_filename, firstkey, i, &sqlfs));
+        assert(sqlfs == 0);
+    }
+    printf("passed\n");
+
     printf("Opening database with wrong key...");
+    sqlfs = 0;
     rc = sqlfs_open_key(database_filename, testkey, 32, &sqlfs);
     assert(!rc);
+    assert(sqlfs == 0);
     printf("passed\n");
 
     printf("Opening database with correct key...");
+    sqlfs = 0;
     rc = sqlfs_open_key(database_filename, firstkey, 32, &sqlfs);
     assert(rc);
+    assert(sqlfs != 0);
     assert(sqlfs_close(sqlfs));
     printf("passed\n");
 
     printf("Opening database with correct key as char...");
+    sqlfs = 0;
     rc = sqlfs_open_key(database_filename, charkey, 32, &sqlfs);
     assert(rc);
+    assert(sqlfs != 0);
     printf("passed\n");
 
     run_standard_tests(sqlfs);
@@ -105,7 +115,9 @@ int main(int argc, char *argv[])
     printf("passed\n");
 
     printf("Attempting to change key for unmounted VFS...");
+    sqlfs = 0;
     assert(sqlfs_open_key(database_filename, firstkey, 32, &sqlfs) );
+    assert(sqlfs != 0);
     assert(sqlfs_rekey(database_filename, firstkey, 32, newkey, 32) );
     assert(sqlfs_close(sqlfs));
     printf("passed\n");

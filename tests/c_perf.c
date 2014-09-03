@@ -13,24 +13,32 @@ int main(int argc, char *argv[])
       database_filename = argv[1];
     if(exists(database_filename))
        printf("%s exists.\n", database_filename);
-    printf("Opening %s\n", database_filename);
-    sqlfs_init(database_filename);
-    printf("Running tests:\n");
 
+    printf("Opening %s...", database_filename);
     rc = sqlfs_open(database_filename, &sqlfs);
-    printf("Opening database...");
     assert(rc);
     printf("passed\n");
 
     run_perf_tests(sqlfs, WRITESZ);
 
     printf("Closing database...");
-    sqlfs_close(sqlfs);
+    rc = sqlfs_close(sqlfs);
+    assert(rc);
     printf("done\n");
+
 
     printf("\n------------------------------------------------------------------------\n");
     printf("Running tests using the thread API, i.e. sqlfs == 0:\n");
+
+    printf("Initing %s\n", database_filename);
+    rc = sqlfs_init(database_filename);
+    assert(rc == 0);
+
     run_perf_tests(0, WRITESZ);
+
+    printf("Destroying:\n");
+    rc = sqlfs_destroy();
+    assert(rc == 0);
 
     rc++; // silence ccpcheck
 

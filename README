@@ -124,6 +124,20 @@ For a sample application showing the usage of libsqlfs, see the test
 programs in the tests/ directory.
 
 
+Operating Modes
+===============
+
+There are two modes of operation for libsqlfs: "init/destroy" and
+"open/close".  "init/destroy" requires sqlfs_init() to be called before any
+operations, then each thread dynamically allocates a sqlfs_t based on need.
+This is the mode used by FUSE.  sqlfs_destroy() must be called after all
+operation is over to clean things up.
+
+"open/close" is more like opening up a file.  It is used when the logic of the
+program using this requires an "open" or "mounted" state.  This is the mode
+that is used by IOCipher.
+
+
 API
 ===
 
@@ -170,6 +184,9 @@ transaction and convenience functions:
 
 int sqlfs_init(const char *)
     initialize the libsqlfs library and sets the default database file name.
+
+int sqlfs_destroy()
+    clean up after sqlfs_init() when all operation is over.
 
 int sqlfs_open(const char *db, sqlfs_t **);
     creates a new connection to the libsqlfs database.  The first argument,

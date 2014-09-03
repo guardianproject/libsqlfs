@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 int main(int argc, char **argv)
 {
+    int rc;
 /* if you want to mount a file with a password */
     sqlfs_init("/tmp/fsdata");
 
@@ -29,7 +30,9 @@ int main(int argc, char **argv)
 //    sqlfs_init_key("tests/.tests/c_thread_api_key.db",
 //                   "mysupersecretpassword");
 
-    return sqlfs_fuse_main(argc, argv);
+    rc = sqlfs_fuse_main(argc, argv);
+    sqlfs_destroy();
+    return rc;
 }
 
 

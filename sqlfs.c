@@ -3283,9 +3283,6 @@ static void sqlfs_t_finalize(void *arg)
         free(sql_fs);
         instance_count--;
     }
-    /* zero out password in memory */
-    if (instance_count < 1)
-        memset(cached_password, 0, MAX_PASSWORD_LENGTH);
 }
 
 
@@ -3394,8 +3391,9 @@ int sqlfs_open(const char *db_file, sqlfs_t **psqlfs)
 
 int sqlfs_close(sqlfs_t *sqlfs)
 {
+    sqlfs_destroy();
     sqlfs_t_finalize(sqlfs);
-    return 1;
+    return !instance_count; // its an error if still instances left
 }
 
 
@@ -3556,6 +3554,16 @@ int sqlfs_init(const char *db_file_name)
         strncpy(default_db_file, db_file_name, sizeof(default_db_file));
     pthread_key_create(&pthread_key, sqlfs_t_finalize);
     return 0;
+}
+
+int sqlfs_destroy()
+{
+    int err = pthread_key_delete(pthread_key);
+    if (err == EINVAL)
+        show_msg(stderr, "Invalid pthread key in sqlfs_destroy()!\n");
+    /* zero out password in memory */
+    memset(cached_password, 0, MAX_PASSWORD_LENGTH);
+    return err;
 }
 
 #ifdef HAVE_LIBSQLCIPHER

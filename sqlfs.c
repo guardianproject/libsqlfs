@@ -59,7 +59,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 #define INDEX 0
 
-#define PREPARE_STMT\
+#define SQLITE3_PREPARE(a, b, c, d, e) \
     stmt = get_sqlfs(sqlfs)->stmts[INDEX];\
     r = SQLITE_OK; \
     if (stmt)\
@@ -70,16 +70,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
             r = ~SQLITE_OK;\
         }\
     }\
-    else r = ~SQLITE_OK;\
-    if (r != SQLITE_OK)
-
-#define DONE_PREPARE  if (r == SQLITE_OK) get_sqlfs(sqlfs)->stmts[INDEX] = stmt; else get_sqlfs(sqlfs)->stmts[INDEX] = 0;
-
-#define SQLITE3_PREPARE(a, b, c, d, e)\
-    PREPARE_STMT \
-    r = sqlite3_prepare((a), (b), (c), (d), (e));\
-    DONE_PREPARE
-
+    else \
+        r = ~SQLITE_OK; \
+    if (r != SQLITE_OK) \
+        r = sqlite3_prepare((a), (b), (c), (d), (e)); \
+    if (r == SQLITE_OK) \
+        get_sqlfs(sqlfs)->stmts[INDEX] = stmt; \
+    else \
+        get_sqlfs(sqlfs)->stmts[INDEX] = 0;
 
 static const size_t BLOCK_SIZE = 8192;
 

@@ -39,7 +39,6 @@ c_perf_key_SOURCES = c_perf_key.c
 c_api_key_SOURCES = c_api_key.c
 c_thread_api_key_SOURCES = c_thread_api_key.c
 c_api_password_SOURCES = c_api_password.c
-c_thread_api_password_SOURCES = c_thread_api_password.c
 endif
 
 TESTS = $(check_SCRIPTS)

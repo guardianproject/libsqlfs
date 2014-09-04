@@ -231,6 +231,7 @@ void test_truncate_existing_file(sqlfs_t *sqlfs, int testsize)
 void test_getattr_create_truncate_truncate_truncate(sqlfs_t *sqlfs)
 {
     printf("Testing getattr create truncate truncate truncate...");
+    int rc;
     struct stat sb;
     struct fuse_file_info fi = { 0 };
     char basefile[PATH_MAX];
@@ -240,20 +241,20 @@ void test_getattr_create_truncate_truncate_truncate(sqlfs_t *sqlfs)
     randomfilename(goodfile, PATH_MAX, "testfile-single.fsxgood");
     randomfilename(logfile, PATH_MAX, "testfile-single.fsxlog");
 
-    sqlfs_proc_getattr(sqlfs, basefile, &sb);
-    assert(errno == ENOENT);
+    rc = sqlfs_proc_getattr(sqlfs, basefile, &sb);
+    assert(rc == -ENOENT);
     sqlfs_proc_create(sqlfs, basefile, 0100644, &fi);
     sqlfs_proc_getattr(sqlfs, basefile, &sb);
     assert(sb.st_size == 0);
 
-    sqlfs_proc_getattr(sqlfs, goodfile, &sb);
-    assert(errno == ENOENT);
+    rc = sqlfs_proc_getattr(sqlfs, goodfile, &sb);
+    assert(rc == -ENOENT);
     sqlfs_proc_create(sqlfs, goodfile, 0100644, &fi);
     sqlfs_proc_getattr(sqlfs, goodfile, &sb);
     assert(sb.st_size == 0);
 
     sqlfs_proc_getattr(sqlfs, logfile, &sb);
-    assert(errno == ENOENT);
+    assert(rc == -ENOENT);
     sqlfs_proc_create(sqlfs, logfile, 0100644, &fi);
     sqlfs_proc_getattr(sqlfs, logfile, &sb);
     assert(sb.st_size == 0);
@@ -270,6 +271,8 @@ void test_getattr_create_truncate_truncate_truncate(sqlfs_t *sqlfs)
     sqlfs_proc_getattr(sqlfs, basefile, &sb);
     assert(sb.st_size == 0);
     printf("passed\n");
+
+    rc++; // silence ccpcheck
 }
 
 void test_write_seek_write(sqlfs_t *sqlfs)

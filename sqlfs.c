@@ -3235,6 +3235,8 @@ static void * sqlfs_t_init(const char *db_file, const char *password)
     {
         sql_fs->stmts[i] = 0;
     }
+    if (db_file && db_file[0] == 0)
+        show_msg(stderr, "WARNING: blank db file name! Creating temporary database.\n");
     r = sqlite3_open(db_file, &(sql_fs->db));
     if (r != SQLITE_OK)
     {
@@ -3253,6 +3255,8 @@ static void * sqlfs_t_init(const char *db_file, const char *password)
         }
         sqlite3_exec(sql_fs->db, "PRAGMA cipher_page_size = 8192;", NULL, NULL, NULL);
     }
+    else
+        show_msg(stderr, "WARNING: No password set!\n");
 #endif
     /* WAL mode improves the performance of write operations (page data must only be
      * written to disk one time) and improves concurrency by reducing blocking between

@@ -1713,18 +1713,70 @@ static int check_parent_write(sqlfs_t *sqlfs, const char *path)
     return result;
 }
 
-#define CHECK_PARENT_PATH(p) result = check_parent_access(sqlfs, (p)); if (result != 0) { commit_transaction(get_sqlfs(sqlfs), 1); return result; }
+#define CHECK_PARENT_PATH(p)                     \
+    result = check_parent_access(sqlfs, (p));    \
+    if (result != 0)                             \
+    {                                            \
+        commit_transaction(get_sqlfs(sqlfs), 1); \
+        return result;                           \
+    }
 
-#define CHECK_READ(p)  result = (sqlfs_proc_access(sqlfs, (p), R_OK | F_OK));  if (result != 0) { commit_transaction(get_sqlfs(sqlfs), 1); return result; }
-#define CHECK_WRITE(p) result = (sqlfs_proc_access(sqlfs, (p), W_OK | F_OK));  if (result != 0) { commit_transaction(get_sqlfs(sqlfs), 1); return result; }
+#define CHECK_READ(p)                                       \
+    result = (sqlfs_proc_access(sqlfs, (p), R_OK | F_OK));  \
+    if (result != 0)                                        \
+    {                                                       \
+        commit_transaction(get_sqlfs(sqlfs), 1);            \
+        return result;                                      \
+    }
 
-#define CHECK_DIR_WRITE(p) result = (sqlfs_proc_access(sqlfs, (p), W_OK | F_OK | X_OK));  if (result != 0) { commit_transaction(get_sqlfs(sqlfs), 1); return result; }
-#define CHECK_DIR_READ(p) result = (sqlfs_proc_access(sqlfs, (p), R_OK | F_OK | X_OK));  if (result != 0) {show_msg(stderr, "dir read failed %d\n", result); commit_transaction(get_sqlfs(sqlfs), 1); return result; }
+#define CHECK_WRITE(p)                                      \
+    result = (sqlfs_proc_access(sqlfs, (p), W_OK | F_OK));  \
+    if (result != 0)                                        \
+    {                                                       \
+        commit_transaction(get_sqlfs(sqlfs), 1);            \
+        return result;                                      \
+    }
 
-#define CHECK_PARENT_READ(p)  \
-  { char ppath[PATH_MAX]; if (SQLITE_OK == get_parent_path((p), ppath))  {  result = (sqlfs_proc_access(sqlfs, (ppath), R_OK | X_OK));  if (result != 0) { commit_transaction(get_sqlfs(sqlfs), 1); return result; }}}
-#define CHECK_PARENT_WRITE(p) \
-  { result = check_parent_write(sqlfs, (p));  if (result != 0) { commit_transaction(get_sqlfs(sqlfs), 1); return result; }}
+#define CHECK_DIR_WRITE(p)                                          \
+    result = (sqlfs_proc_access(sqlfs, (p), W_OK | F_OK | X_OK));   \
+    if (result != 0)                                                \
+    {                                                               \
+        commit_transaction(get_sqlfs(sqlfs), 1);                    \
+        return result;                                              \
+    }
+
+#define CHECK_DIR_READ(p)                                           \
+    result = (sqlfs_proc_access(sqlfs, (p), R_OK | F_OK | X_OK));   \
+    if (result != 0)                                                \
+    {                                                               \
+        show_msg(stderr, "dir read failed %d\n", result);           \
+        commit_transaction(get_sqlfs(sqlfs), 1);                    \
+        return result;                                              \
+    }
+
+#define CHECK_PARENT_READ(p)                                            \
+    {                                                                   \
+        char ppath[PATH_MAX];                                           \
+        if (SQLITE_OK == get_parent_path((p), ppath))                   \
+        {                                                               \
+            result = (sqlfs_proc_access(sqlfs, (ppath), R_OK | X_OK));  \
+            if (result != 0)                                            \
+            {                                                           \
+                commit_transaction(get_sqlfs(sqlfs), 1);                \
+                return result;                                          \
+            }                                                           \
+        }                                                               \
+    }
+
+#define CHECK_PARENT_WRITE(p)                           \
+    {                                                   \
+        result = check_parent_write(sqlfs, (p));        \
+        if (result != 0)                                \
+        {                                               \
+            commit_transaction(get_sqlfs(sqlfs), 1);    \
+            return result;                              \
+        }                                               \
+    }
 
 int sqlfs_proc_getattr(sqlfs_t *sqlfs, const char *path, struct stat *stbuf)
 {

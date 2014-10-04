@@ -22,8 +22,8 @@ database to be accessed via OS level file system interfaces by normal
 applications.
  
 
-Rational
-========
+Rationale
+=========
 
 PalmSource software developers originally created libsqlfs.  This library is
 an adjunct to the very popular open source SQLite database software.  Libsqlfs

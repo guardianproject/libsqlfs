@@ -1852,9 +1852,9 @@ int sqlfs_proc_access(sqlfs_t *sqlfs, const char *path, int mask)
     gid_t gid = get_sqlfs(sqlfs)->gid;
     uid_t uid = get_sqlfs(sqlfs)->uid;
 #endif
-    uid_t fuid;
-    gid_t fgid;
-    mode_t fmode;
+    uid_t fuid = 0;
+    gid_t fgid = 0;
+    mode_t fmode = 0;
 
     begin_transaction(get_sqlfs(sqlfs));
 

@@ -34,7 +34,7 @@ int main(int argc, char *argv[])
         fprintf(stderr, "stat on %s failed!\n", db);
         exit(1);
     }
-    if(S_ISREG(s.st_mode)<0)
+    if (S_ISREG(s.st_mode))
     {
         fprintf(stderr, "Not a regular file: %s\n", db);
         exit(1);

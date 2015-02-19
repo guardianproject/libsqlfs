@@ -18,17 +18,37 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 *****************************************************************************/
 
 #include "sqlfs.h"
-
+#include <stdio.h>
+#include <string.h>
 
 int main(int argc, char **argv)
 {
     int rc;
-/* if you want to mount a file with a password */
-    sqlfs_init("/tmp/fsdata");
+    sqlfs_t *sqlfs = 0;
+    const char* db = "/tmp/fsdata";
 
+#ifdef HAVE_LIBSQLCIPHER
+#  define BUF_SIZE 8192
+/* get the password from stdin */
+    char password[BUF_SIZE];
+    char *p = fgets(password, BUF_SIZE, stdin);
+    if (p)
+    {
+        /* remove trailing newline */
+        size_t last = strlen(p) - 1;
+        if (p[last] == '\n')
+            p[last] = '\0';
+        if (!sqlfs_open_password(db, password, &sqlfs)) {
+            fprintf(stderr, "Failed to open: %s\n", db);
+            return 1;
+        }
+        sqlfs_init_password(db, password);
+        memset(password, 0, BUF_SIZE); // zero out password
+    }
+    else // this is for the sqlfs_init() line below
+#endif /* HAVE_LIBSQLCIPHER */
 /* if you want to mount a file with a password */
-//    sqlfs_init_key("tests/.tests/c_thread_api_key.db",
-//                   "mysupersecretpassword");
+        sqlfs_init(db);
 
     rc = sqlfs_fuse_main(argc, argv);
     sqlfs_destroy();

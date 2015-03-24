@@ -105,6 +105,7 @@ extern "C" {
     int sqlfs_instance_count(); /* number of active threads */
     int sqlfs_open(const char *db_file, sqlfs_t **psqlfs);
     int sqlfs_close(sqlfs_t *);
+    void sqlfs_detach_thread();
     /* since the password gets cooked down to 256 bits, 512 chars is plenty */
 #   define MAX_PASSWORD_LENGTH 512
 #ifdef HAVE_LIBSQLCIPHER

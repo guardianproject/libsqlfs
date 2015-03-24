@@ -3468,6 +3468,11 @@ int sqlfs_close(sqlfs_t *sqlfs)
     return !instance_count; // its an error if still instances left
 }
 
+void sqlfs_detach_thread(void)
+{
+    sqlfs_t_finalize(pthread_getspecific(pthread_key));
+}
+
 
 #ifdef HAVE_LIBFUSE
 

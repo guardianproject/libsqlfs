@@ -24,12 +24,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 int main(int argc, char **argv)
 {
     int rc;
-    sqlfs_t *sqlfs = 0;
     const char* db = "/tmp/fsdata";
-
 #ifdef HAVE_LIBSQLCIPHER
-#  define BUF_SIZE 8192
+    sqlfs_t *sqlfs = 0;
+
 /* get the password from stdin */
+#  define BUF_SIZE 8192
     char password[BUF_SIZE];
     char *p = fgets(password, BUF_SIZE, stdin);
     if (p)

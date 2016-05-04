@@ -375,6 +375,40 @@ void test_o_append_existing_file(sqlfs_t *sqlfs)
     i++; rc++; // silence ccpcheck
 }
 
+void test_open_create(sqlfs_t *sqlfs)
+{
+    printf("Testing creating file with open(O_WRONLY|O_CREAT|O_TRUNC)...");
+    char testfilename[PATH_MAX];
+    struct stat sb;
+    struct fuse_file_info ffi;
+    randomfilename(testfilename, PATH_MAX, "open");
+    ffi.flags = O_WRONLY | O_CREAT | O_TRUNC;
+    ffi.direct_io = 0;
+    assert(sqlfs_proc_open(sqlfs, testfilename, &ffi) == 0);
+    sqlfs_proc_getattr(sqlfs, testfilename, &sb);
+    assert(sb.st_size == 0);
+    printf("passed\n");
+}
+
+void test_open_create_existing(sqlfs_t *sqlfs)
+{
+    printf("Testing opening file with open(O_WRONLY|O_CREAT|O_TRUNC)...");
+    int testsize=123;
+    char testfilename[PATH_MAX];
+    struct stat sb;
+    struct fuse_file_info ffi;
+    randomfilename(testfilename, PATH_MAX, "open");
+    create_test_file(sqlfs, testfilename, testsize);
+    sqlfs_proc_getattr(sqlfs, testfilename, &sb);
+    assert(sb.st_size == testsize);
+    ffi.flags = O_WRONLY | O_CREAT | O_TRUNC;
+    ffi.direct_io = 0;
+    assert(sqlfs_proc_open(sqlfs, testfilename, &ffi) == 0);
+    sqlfs_proc_getattr(sqlfs, testfilename, &sb);
+    assert(sb.st_size == 0);
+    printf("passed\n");
+}
+
 void run_standard_tests(sqlfs_t* sqlfs)
 {
     int size;
@@ -390,6 +424,8 @@ void run_standard_tests(sqlfs_t* sqlfs)
     test_write_block_boundaries(sqlfs);
     test_read_bigger_than_buffer(sqlfs);
     test_o_append_existing_file(sqlfs);
+    test_open_create(sqlfs);
+    test_open_create_existing(sqlfs);
 
     for (size=10; size < 1000001; size *= 10) {
         test_write_n_bytes(sqlfs, size);

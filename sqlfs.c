@@ -2639,7 +2639,7 @@ int sqlfs_proc_create(sqlfs_t *sqlfs, const char *path, mode_t mode, struct fuse
 
 int sqlfs_proc_open(sqlfs_t *sqlfs, const char *path, struct fuse_file_info *fi)
 {
-    int r, result = 0;
+    int r, exists = 0, result = 0;
     key_attr attr = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
     if (fi->direct_io)
@@ -2650,8 +2650,7 @@ int sqlfs_proc_open(sqlfs_t *sqlfs, const char *path, struct fuse_file_info *fi)
     {
         CHECK_PARENT_WRITE(path);
     }
-
-    if (fi->flags & (O_WRONLY | O_RDWR))
+    else if (fi->flags & (O_WRONLY | O_RDWR))
     {
         CHECK_PARENT_PATH(path);
         CHECK_WRITE(path);
@@ -2664,6 +2663,7 @@ int sqlfs_proc_open(sqlfs_t *sqlfs, const char *path, struct fuse_file_info *fi)
     r = get_attr(get_sqlfs(sqlfs), path, &attr);
     if (r == SQLITE_OK) /* already exists */
     {
+        exists = 1;
         if ((fi->flags & O_EXCL) && (fi->flags & O_CREAT) )
             result = -EEXIST;
         else if (!strcmp(attr.type, TYPE_DIR) && (fi->flags & (O_WRONLY | O_RDWR)))
@@ -2677,7 +2677,7 @@ int sqlfs_proc_open(sqlfs_t *sqlfs, const char *path, struct fuse_file_info *fi)
             result = - ENOENT ;
 
     /* truncate file if called for */
-    if ((fi->flags & O_TRUNC) && (fi->flags & (O_WRONLY | O_RDWR))) {
+    if (exists && (fi->flags & O_TRUNC) && (fi->flags & (O_WRONLY | O_RDWR))) {
         r = sqlfs_proc_truncate(sqlfs, path, 0);
         if (r == SQLITE_BUSY)
             result = -EBUSY;
@@ -2692,7 +2692,7 @@ int sqlfs_proc_open(sqlfs_t *sqlfs, const char *path, struct fuse_file_info *fi)
             result = -EIO;
     }
 
-    if ((result == 0) && (fi->flags & O_CREAT))
+    if (!exists && (result == 0) && (fi->flags & O_CREAT))
     {
         attr.mode = get_sqlfs(sqlfs)->default_mode; /* to use some kind of default */
 #ifdef HAVE_LIBFUSE

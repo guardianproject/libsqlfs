@@ -1,0 +1,23 @@
+sudo: required
+
+dist: trusty
+
+before_install:
+  - sudo apt-get -qq update
+  - sudo apt-get install -y libfuse-dev libsqlcipher-dev cppcheck
+
+language: c
+
+compiler:
+  - gcc
+  - clang
+
+script:
+  - ./jenkins-build
+  - make dist
+  - sudo make install
+
+after_failure:
+  - cat tests/test-suite.log | curl --silent -F 'clbin=<-' https://clbin.com
+  - cat cppcheck-result.xml | curl --silent -F 'clbin=<-' https://clbin.com
+

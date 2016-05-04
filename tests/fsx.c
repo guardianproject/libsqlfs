@@ -996,8 +996,6 @@ main(int argc, char **argv)
 			break;
 		case 'p':
 			progressinterval = getnum(optarg, &endp);
-			if (progressinterval < 0)
-				usage();
 			break;
 		case 'q':
 			quiet = 1;

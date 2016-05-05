@@ -372,7 +372,33 @@ void test_o_append_existing_file(sqlfs_t *sqlfs)
     assert(sqlfs_proc_read(sqlfs, testfilename, buf2, testsize, testsize, &fi) > 0);
     assert(!strcmp(buf, buf2));
     printf("passed\n");
-    i++; rc++; // silence ccpcheck
+    i++; rc++; // silence cppcheck
+}
+
+void test_open_non_existent(sqlfs_t *sqlfs)
+{
+    printf("Testing open non-existent file without O_CREAT...");
+    char testfilename[PATH_MAX];
+    struct stat sb;
+    struct fuse_file_info ffi;
+    randomfilename(testfilename, PATH_MAX, "open_non_existent");
+    ffi.direct_io = 0;
+    ffi.flags = O_RDONLY;
+    assert(sqlfs_proc_open(sqlfs, testfilename, &ffi) == -ENOENT);
+    assert(sqlfs_proc_getattr(sqlfs, testfilename, &sb) == -ENOENT);
+    ffi.flags = O_WRONLY;
+    assert(sqlfs_proc_open(sqlfs, testfilename, &ffi) == -ENOENT);
+    assert(sqlfs_proc_getattr(sqlfs, testfilename, &sb) == -ENOENT);
+    ffi.flags = O_RDWR;
+    assert(sqlfs_proc_open(sqlfs, testfilename, &ffi) == -ENOENT);
+    assert(sqlfs_proc_getattr(sqlfs, testfilename, &sb) == -ENOENT);
+    ffi.flags = O_WRONLY | O_TRUNC;
+    assert(sqlfs_proc_open(sqlfs, testfilename, &ffi) == -ENOENT);
+    assert(sqlfs_proc_getattr(sqlfs, testfilename, &sb) == -ENOENT);
+    ffi.flags = O_RDWR | O_TRUNC;
+    assert(sqlfs_proc_open(sqlfs, testfilename, &ffi) == -ENOENT);
+    assert(sqlfs_proc_getattr(sqlfs, testfilename, &sb) == -ENOENT);
+    printf("passed\n");
 }
 
 void test_open_create(sqlfs_t *sqlfs)
@@ -424,6 +450,7 @@ void run_standard_tests(sqlfs_t* sqlfs)
     test_write_block_boundaries(sqlfs);
     test_read_bigger_than_buffer(sqlfs);
     test_o_append_existing_file(sqlfs);
+    test_open_non_existent(sqlfs);
     test_open_create(sqlfs);
     test_open_create_existing(sqlfs);
 

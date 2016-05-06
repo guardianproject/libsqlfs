@@ -18,3 +18,8 @@ ls -1 *.c *.h tests/c*.c | sort | \
     cppcheck --enable=all --file-list=- --max-configs=50 -I/usr/include --xml \
     2> cppcheck-result.xml
 make check V=1
+make clean
+./configure --without-fuse
+make clean
+make -j4
+make check V=1

@@ -13,7 +13,7 @@ fi
 # now run the build
 ./configure --with-fuse
 make clean
-make
+make -j4
 ls -1 *.c *.h tests/c*.c | sort | \
     cppcheck --enable=all --file-list=- --max-configs=50 -I/usr/include --xml \
     2> cppcheck-result.xml

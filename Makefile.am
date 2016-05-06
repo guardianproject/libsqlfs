@@ -13,14 +13,14 @@ libsqlfs_1_0_la_LDFLAGS = -version-info 1:0:0
 
 bin_PROGRAMS = sqlfscat sqlfsls
 sqlfscat_SOURCES = sqlfscat.c
-sqlfscat_LDADD = -lpthread @SQLITE@ ./.libs/libsqlfs-1.0.la
+sqlfscat_LDADD = -lpthread @SQLITE@ ./libsqlfs-1.0.la
 sqlfsls_SOURCES = sqlfsls.cpp
-sqlfsls_LDADD = -lpthread @SQLITE@ ./.libs/libsqlfs-1.0.la
+sqlfsls_LDADD = -lpthread @SQLITE@ ./libsqlfs-1.0.la
 
 if WITH_LIBFUSE
 bin_PROGRAMS += fuse_sqlfs
 fuse_sqlfs_SOURCES = fuse_sqlfs.c
-fuse_sqlfs_LDADD = -lpthread @SQLITE@ @LIBFUSE@ ./.libs/libsqlfs-1.0.la
+fuse_sqlfs_LDADD = -lpthread @SQLITE@ @LIBFUSE@ ./libsqlfs-1.0.la
 endif
 
 pkgconfigdir = $(libdir)/pkgconfig

@@ -2755,17 +2755,22 @@ int sqlfs_proc_read(sqlfs_t *sqlfs, const char *path, char *buf, size_t size, of
         return -EBUSY;
     }
 
-    value.data = buf;
-    value.size = size;
-    r = get_value(get_sqlfs(sqlfs), path, &value, offset, offset + size);
-    if (r != SQLITE_OK)
-        result = -EIO;
-    else if ((size_t) offset > existing_size) /* nothing to read */
+    if ((size_t) offset >= existing_size) /* nothing to read */
+    {
         result = 0;
-    else if ((size_t) offset + size > existing_size) /* can read less than asked for */
-        result = existing_size - offset;
+    }
     else
-        result = size;
+    {
+        value.data = buf;
+        value.size = size;
+        r = get_value(get_sqlfs(sqlfs), path, &value, offset, offset + size);
+        if (r != SQLITE_OK) {
+            result = -EIO;
+        } else if ((size_t) offset + size > existing_size) /* can read less than asked for */
+            result = existing_size - offset;
+        else
+            result = size;
+    }
 
     commit_transaction(get_sqlfs(sqlfs), 1);
     return result;

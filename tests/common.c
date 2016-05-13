@@ -195,6 +195,18 @@ void test_read_byte_with_offset(sqlfs_t *sqlfs, int testsize)
     printf("passed\n");
 }
 
+void test_create_file_and_read(sqlfs_t *sqlfs)
+{
+    printf("Testing creating a file and reading it...");
+    char buf[200];
+    struct fuse_file_info fi = { 0 };
+    fi.flags |= O_CREAT | O_TRUNC | O_RDWR;
+    assert(sqlfs_proc_open(sqlfs, "/file", &fi) >= 0);
+    assert(sqlfs_proc_access(sqlfs, "/file", R_OK) == 0);
+    assert(sqlfs_proc_read(sqlfs, "/file", buf, sizeof(buf), 0, &fi) == 0);
+    printf("passed\n");
+}
+
 void test_truncate(sqlfs_t *sqlfs, int testsize)
 {
     printf("Testing truncating...");
@@ -461,6 +473,7 @@ void run_standard_tests(sqlfs_t* sqlfs)
     test_mkdir_to_make_nested_dirs(sqlfs);
     test_rmdir(sqlfs);
     test_create_file_with_small_string(sqlfs);
+    test_create_file_and_read(sqlfs);
     test_write_seek_write(sqlfs);
     test_write_block_boundaries(sqlfs);
     test_read_bigger_than_buffer(sqlfs);

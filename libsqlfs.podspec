@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = "libsqlfs"
-  s.version          = "1.3.0.1"
+  s.version          = "1.3.2"
   s.summary          = "Library that implements a POSIX style filesystem on top of an SQLite database"
   s.description      = <<-DESC
                         The libsqlfs library implements a POSIX style file system on top of an

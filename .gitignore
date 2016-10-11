@@ -46,3 +46,4 @@ tests/fuse_test
 #
 # emacs!
 *~
+.DS_Store

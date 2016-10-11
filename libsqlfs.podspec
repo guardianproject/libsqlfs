@@ -26,7 +26,7 @@ Pod::Spec.new do |s|
   s.default_subspec = 'standard'
 
   s.subspec 'common' do |ss|
-    ss.source_files = 'sqlfs.{h,m}', 'sqlfs_internal.h'
+    ss.source_files = 'sqlfs.{h,c}', 'sqlfs_internal.h'
   end
 
   # use a builtin version of sqlite3

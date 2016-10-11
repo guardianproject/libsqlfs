@@ -36,12 +36,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <errno.h>
 #include <utime.h>
 
-#ifdef HAVE_LIBSQLCIPHER
-#include "sqlcipher/sqlite3.h"
-#else
-#include "sqlite3.h"
-#endif
-
 #define TYPE_NULL "null"
 #define TYPE_DIR "dir"
 #define TYPE_INT "int"
@@ -52,22 +46,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #define TYPE_LIST "list"
 #define TYPE_BLOB "blob"
 
-
-
-typedef struct
-{
-    sqlite3 *db;
-    int transaction_level;
-    int in_transaction;
-    mode_t default_mode;
-
-    sqlite3_stmt *stmts[200];
-#ifndef HAVE_LIBFUSE
-    uid_t uid;
-    gid_t gid;
-#endif
-}
-sqlfs_t;
+typedef struct sqlfs_t sqlfs_t;
 
 typedef struct
 {

@@ -1709,20 +1709,7 @@ static int check_parent_write(sqlfs_t *sqlfs, const char *path)
     begin_transaction(get_sqlfs(sqlfs));
     r = get_parent_path(path, ppath);
     if (r == SQLITE_OK)
-    {
         result = (sqlfs_proc_access(sqlfs, (ppath), W_OK | X_OK));
-#ifndef HAVE_LIBFUSE
-        /* libfuse seems to enforce that the parent directory before getting
-         * here, but without libfuse, we need to do it manually */
-        if (result == -ENOENT)
-        {
-            result = check_parent_write(sqlfs, ppath);
-            if (result == 0)
-                ensure_existence(sqlfs, ppath, TYPE_DIR);
-            result = (sqlfs_proc_access(sqlfs, (ppath), W_OK | X_OK));
-        }
-#endif
-    }
     commit_transaction(get_sqlfs(sqlfs), 1);
     return result;
 }

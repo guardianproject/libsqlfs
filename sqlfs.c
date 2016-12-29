@@ -56,6 +56,20 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 # include "sqlite3.h"
 #endif
 
+struct sqlfs_t
+{
+    sqlite3 *db;
+    int transaction_level;
+    int in_transaction;
+    mode_t default_mode;
+    
+    sqlite3_stmt *stmts[200];
+#ifndef HAVE_LIBFUSE
+    uid_t uid;
+    gid_t gid;
+#endif
+};
+
 
 #define INDEX 0
 

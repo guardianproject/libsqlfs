@@ -26,9 +26,29 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 #include <sys/time.h>
 #include "sqlfs.h"
 
+#ifdef HAVE_LIBSQLCIPHER
+# include "sqlcipher/sqlite3.h"
+#else
+# include "sqlite3.h"
+#endif
+
 #define BLOCK_SIZE 8192
 
 char *data = "this is a string";
+
+struct sqlfs_t
+{
+    sqlite3 *db;
+    int transaction_level;
+    int in_transaction;
+    mode_t default_mode;
+    
+    sqlite3_stmt *stmts[200];
+#ifndef HAVE_LIBFUSE
+    uid_t uid;
+    gid_t gid;
+#endif
+};
 
 /* support functions -------------------------------------------------------- */
 

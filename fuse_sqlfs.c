@@ -31,6 +31,7 @@ int main(int argc, char **argv)
 /* get the password from stdin */
 #  define BUF_SIZE 8192
     char password[BUF_SIZE];
+    sqlfs_t *sqlfs = 0;
     char *p = fgets(password, BUF_SIZE, stdin);
     if (p)
     {

@@ -37,7 +37,7 @@ Pod::Spec.new do |s|
 
   # use SQLCipher and enable -DHAVE_LIBSQLCIPHER flag
   s.subspec 'SQLCipher' do |ss|
-    ss.dependency 'SQLCipher', '~> 3.4.0'
+    ss.dependency 'SQLCipher', '>= 3.4.0'
     ss.dependency 'libsqlfs/common'
     ss.xcconfig = { 'OTHER_CFLAGS' => '$(inherited) -DHAVE_LIBSQLCIPHER -DSQLITE_HAS_CODEC' }
   end

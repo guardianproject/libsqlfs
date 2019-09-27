@@ -3273,6 +3273,7 @@ static void * sqlfs_t_init(const char *db_file, const char *password)
             show_msg(stderr, "Opening the database with provided key/password failed!\n");
             return 0;
         }
+        sqlite3_exec(sql_fs->db, "PRAGMA cipher_compatibility = 3;", NULL, NULL, NULL);
         sqlite3_exec(sql_fs->db, "PRAGMA cipher_page_size = 8192;", NULL, NULL, NULL);
     }
     else

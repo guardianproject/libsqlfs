@@ -114,7 +114,7 @@ void test_mkdir_without_sleep(sqlfs_t *sqlfs)
     printf("Testing whether mkdir does not make nested dirs...");
     testfilename = "/a/b/c/d/e/f/g";
     sqlfs_proc_mkdir(sqlfs, testfilename, 0777);
-    assert(!sqlfs_is_dir(sqlfs, testfilename));
+    assert(sqlfs_is_dir(sqlfs, testfilename) == 1);
     printf("passed\n");
 }
 

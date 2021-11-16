@@ -70,6 +70,8 @@ struct sqlfs_t
 #endif
 };
 
+// TODO this header always includes fuse.h. That would need fixing because this code conditionally includes that header.
+#include "libsqlfs_rs.h"
 
 #define INDEX 0
 
@@ -1989,13 +1991,7 @@ int sqlfs_proc_readlink(sqlfs_t *sqlfs, const char *path, char *buf, size_t size
 int sqlfs_proc_readdir(sqlfs_t *sqlfs, const char *path, void *buf, fuse_fill_dir_t filler,
                        off_t offset, struct fuse_file_info *fi)
 {
-    int i, r, result = 0;
-    const char *tail;
-    const char *t, *t2;
-    static const char *cmd = "select key, mode from meta_data where key glob :pattern; ";
-    char tmp[PATH_MAX];
-    char *lpath;
-    sqlite3_stmt *stmt;
+    int i, result = 0;
     begin_transaction(get_sqlfs(sqlfs));
     CHECK_PARENT_PATH(path);
     CHECK_DIR_READ(path);
@@ -2012,57 +2008,10 @@ int sqlfs_proc_readdir(sqlfs_t *sqlfs, const char *path, void *buf, fuse_fill_di
         return -EBUSY;
     }
 
-    lpath = strdup(path);
-    remove_tail_slash(lpath);
-    filler(buf, ".", NULL, 0);
-    filler(buf, "..", NULL, 0);
-    snprintf(tmp, sizeof(tmp), "%s/*", lpath);
+    // Call our rust function
+    readdir(get_sqlfs(sqlfs)->db, path, buf, filler);
 
-    SQLITE3_PREPARE(get_sqlfs(sqlfs)->db, cmd, -1, &stmt,  &tail);
-    if (r != SQLITE_OK)
-    {
-        show_msg(stderr, "%s\n", sqlite3_errmsg(get_sqlfs(sqlfs)->db));
-
-        result = -EACCES;
-    }
-    if (result == 0)
-    {
-        sqlite3_bind_text(stmt, 1, tmp, -1, SQLITE_STATIC);
-
-        while (1)
-        {
-            r = sql_step(stmt);
-            if (r == SQLITE_ROW)
-            {
-                t = (const char *)sqlite3_column_text(stmt, 0);
-                if (!strcmp(t, lpath))
-                    continue;
-                t2 = t + strlen(lpath) + 1;
-                if (strchr(t2, '/'))
-                    continue; /* grand child, etc. */
-                if (*t2 == 0) /* special case when dir the root directory */
-                    continue;
-
-                if (filler(buf, t2, NULL, 0))
-                    break;
-            }
-            else if (r == SQLITE_DONE)
-            {
-                break;
-            }
-            else if (r == SQLITE_BUSY)
-                result = -EBUSY;
-            else
-            {
-                show_msg(stderr, "%s\n", sqlite3_errmsg(get_sqlfs(sqlfs)->db));
-                result = -EACCES;
-                break;
-            }
-        }
-        sqlite3_reset(stmt);
-    }
     commit_transaction(get_sqlfs(sqlfs), 1);
-    free(lpath);
     return result;
 }
 
@@ -2107,6 +2056,7 @@ int sqlfs_proc_mknod(sqlfs_t *sqlfs, const char *path, mode_t mode, dev_t rdev)
     return result;
 }
 
+// TODO
 int sqlfs_proc_mkdir(sqlfs_t *sqlfs, const char *path, mode_t mode)
 {
     key_attr attr = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };

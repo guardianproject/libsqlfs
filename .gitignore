@@ -1,6 +1,7 @@
 # autotools products
 TAGS
 .libs
+lib
 .deps
 aclocal.m4
 autom4te.cache

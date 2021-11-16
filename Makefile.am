@@ -8,7 +8,7 @@ include_HEADERS = sqlfs.h sqlfs_internal.h
 lib_LTLIBRARIES = libsqlfs-1.0.la
 
 libsqlfs_1_0_la_SOURCES = sqlfs.c
-libsqlfs_1_0_la_LIBADD = @SQLITE@ @LIBFUSE@
+libsqlfs_1_0_la_LIBADD = @SQLITE@ @LIBFUSE@ ./lib/libsqlfs_rs.a
 libsqlfs_1_0_la_LDFLAGS = -version-info 1:0:0
 
 bin_PROGRAMS = sqlfscat sqlfsls

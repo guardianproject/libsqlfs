@@ -243,8 +243,23 @@ The filesystem is implemented using the common pattern of blocks allocated to
 a file.  The file system is stored in a SQLite table, with the following
 columns:
 
-full key path | type | inode   | uid     | gid     | mode    | acl  | attributes | atime   | mtime   | ctime   | size    | block_size
-text          | text | integer | integer | integer | integer | text | text       | integer | integer | integer | integer | integer
+
+| Column Name    | Type     |
+|----------------|----------|
+| full key path  | text     |
+| type           | text     |
+| inode          | integer  |
+| uid            | integer  |
+| gid            | integer  |
+| mode           | integer  |
+| acl            | text     |
+| attributes     | text     |
+| atime          | integer  |
+| mtime          | integer  |
+| ctime          | integer  |
+| size           | integer  |
+| block_size     | integer  |
+
 
 The key path must be an absolute path using "/" as the path separators.  The
 path is case sensitive.  The type of data associated with the key path can be
